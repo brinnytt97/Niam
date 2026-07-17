@@ -32,7 +32,7 @@ struct RecommendationService {
 
             // Apply scene filter
             if let requiredScene = filters.scene {
-                guard recipe.scene == requiredScene else { return nil }
+                guard recipe.hasScene(requiredScene) else { return nil }
             }
 
             // Apply time filter

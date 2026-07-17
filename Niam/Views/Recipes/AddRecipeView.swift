@@ -6,10 +6,12 @@ struct AddRecipeView: View {
 
     @State private var title = ""
     @State private var cuisine: Cuisine = .chinese
-    @State private var scene: MealScene = .mainMeal
-    @State private var servings = 2
-    @State private var prepTime = 10
-    @State private var cookTime = 20
+    @State private var selectedScenes: Set<MealScene> = [.mainMeal]
+    @State private var servingsText = ""
+    @State private var prepTime = 0
+    @State private var prepTimeText = ""
+    @State private var cookTime = 0
+    @State private var cookTimeText = ""
     @State private var caloriesText = ""
     @State private var notes = ""
 
@@ -18,18 +20,13 @@ struct AddRecipeView: View {
     @State private var seasonings: [Ingredient] = []
     @State private var steps: [String] = []
 
-    // New ingredient input
     @State private var newIngName = ""
     @State private var newIngQty: Double = 1
     @State private var newIngUnit: FoodUnit = .gram
-
-    // New step input
-    @State private var newStep = ""
-
-    // Which ingredient section is being added to
     @State private var addingTo: IngredientSection = .main
 
-    // Photo
+    @State private var newStep = ""
+
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var imageData: Data?
 
@@ -70,38 +67,106 @@ struct AddRecipeView: View {
                             Text(c.rawValue).tag(c)
                         }
                     }
-                    Picker("Scene", selection: $scene) {
-                        ForEach(MealScene.allCases, id: \.self) { s in
-                            Text(s.rawValue).tag(s)
-                        }
-                    }
-                    Stepper("Servings: \(servings)", value: $servings, in: 1...20)
-                    Stepper("Prep: \(prepTime) min", value: $prepTime, in: 0...300, step: 5)
-                    Stepper("Cook: \(cookTime) min", value: $cookTime, in: 0...300, step: 5)
-                    TextField("Calories per serving", text: $caloriesText)
-                        .keyboardType(.numberPad)
                 }
 
-                // MARK: - Main Ingredients
-                ingredientSection(
-                    title: "Main Ingredients",
-                    items: $mainIngredients,
-                    section: .main
-                )
+                // MARK: - Scene (multi-select horizontal scroll)
+                Section("Scene") {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(MealScene.allCases, id: \.self) { scene in
+                                Button {
+                                    if selectedScenes.contains(scene) {
+                                        selectedScenes.remove(scene)
+                                    } else {
+                                        selectedScenes.insert(scene)
+                                    }
+                                } label: {
+                                    Text(scene.rawValue)
+                                        .font(.subheadline)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            selectedScenes.contains(scene)
+                                                ? Color.accentColor
+                                                : Color(.systemGray5)
+                                        )
+                                        .foregroundStyle(
+                                            selectedScenes.contains(scene) ? .white : .primary
+                                        )
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
 
-                // MARK: - Side Ingredients
-                ingredientSection(
-                    title: "Side Ingredients",
-                    items: $sideIngredients,
-                    section: .side
-                )
+                // MARK: - Details
+                Section("Details") {
+                    HStack {
+                        Text("Servings")
+                        Spacer()
+                        TextField("Optional", text: $servingsText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                    }
 
-                // MARK: - Seasonings
-                ingredientSection(
-                    title: "Seasonings",
-                    items: $seasonings,
-                    section: .seasoning
-                )
+                    // Prep time: editable text + stepper
+                    HStack {
+                        Text("Prep")
+                        Spacer()
+                        TextField("min", text: $prepTimeText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 60)
+                            .onChange(of: prepTimeText) { _, val in
+                                prepTime = Int(val) ?? 0
+                            }
+                        Text("min")
+                            .foregroundStyle(.secondary)
+                        Stepper("", value: $prepTime, in: 0...600, step: 5)
+                            .labelsHidden()
+                            .onChange(of: prepTime) { _, val in
+                                prepTimeText = val > 0 ? String(val) : ""
+                            }
+                    }
+
+                    // Cook time: editable text + stepper
+                    HStack {
+                        Text("Cook")
+                        Spacer()
+                        TextField("min", text: $cookTimeText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 60)
+                            .onChange(of: cookTimeText) { _, val in
+                                cookTime = Int(val) ?? 0
+                            }
+                        Text("min")
+                            .foregroundStyle(.secondary)
+                        Stepper("", value: $cookTime, in: 0...600, step: 5)
+                            .labelsHidden()
+                            .onChange(of: cookTime) { _, val in
+                                cookTimeText = val > 0 ? String(val) : ""
+                            }
+                    }
+
+                    HStack {
+                        Text("Calories/serving")
+                        Spacer()
+                        TextField("kcal", text: $caloriesText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                    }
+                }
+
+                // MARK: - Ingredients
+                ingredientSection(title: "Main Ingredients", items: $mainIngredients, section: .main)
+                ingredientSection(title: "Side Ingredients", items: $sideIngredients, section: .side)
+                ingredientSection(title: "Seasonings", items: $seasonings, section: .seasoning)
 
                 // MARK: - Steps
                 Section("Steps (\(steps.count))") {
@@ -140,13 +205,13 @@ struct AddRecipeView: View {
                         let recipe = Recipe(
                             title: title,
                             cuisine: cuisine,
-                            scene: scene,
+                            scenes: Array(selectedScenes),
                             mainIngredients: mainIngredients,
                             sideIngredients: sideIngredients,
                             seasonings: seasonings,
                             steps: steps,
                             notes: notes,
-                            servings: servings,
+                            servings: Int(servingsText),
                             prepTimeMinutes: prepTime,
                             cookTimeMinutes: cookTime,
                             caloriesPerServing: Int(caloriesText),

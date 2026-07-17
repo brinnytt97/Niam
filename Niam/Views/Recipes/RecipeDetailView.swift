@@ -20,14 +20,20 @@ struct RecipeDetailView: View {
                     Text(recipe.title)
                         .font(.largeTitle.bold())
 
-                    HStack(spacing: 8) {
-                        TagBadge(text: recipe.scene.rawValue, color: .orange)
-                        TagBadge(text: recipe.cuisine.rawValue, color: .blue)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(recipe.scenes, id: \.self) { scene in
+                                TagBadge(text: scene.rawValue, color: .orange)
+                            }
+                            TagBadge(text: recipe.cuisine.rawValue, color: .blue)
+                        }
                     }
 
                     // MARK: - Quick Info
                     HStack(spacing: 20) {
-                        InfoItem(icon: "person.2", label: "Servings", value: "\(recipe.servings)")
+                        if let servings = recipe.servings {
+                            InfoItem(icon: "person.2", label: "Servings", value: "\(servings)")
+                        }
                         if recipe.prepTimeMinutes > 0 {
                             InfoItem(icon: "hands.sparkles", label: "Prep", value: "\(recipe.prepTimeMinutes) min")
                         }

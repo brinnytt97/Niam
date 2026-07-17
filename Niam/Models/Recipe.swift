@@ -5,13 +5,13 @@ import SwiftData
 final class Recipe {
     var title: String
     var cuisine: Cuisine
-    var scene: MealScene
+    var scenes: [MealScene]
     var mainIngredients: [Ingredient]
     var sideIngredients: [Ingredient]
     var seasonings: [Ingredient]
     var steps: [String]
     var notes: String
-    var servings: Int
+    var servings: Int?
     var prepTimeMinutes: Int
     var cookTimeMinutes: Int
     var caloriesPerServing: Int?
@@ -22,13 +22,13 @@ final class Recipe {
     init(
         title: String,
         cuisine: Cuisine = .chinese,
-        scene: MealScene = .mainMeal,
+        scenes: [MealScene] = [.mainMeal],
         mainIngredients: [Ingredient] = [],
         sideIngredients: [Ingredient] = [],
         seasonings: [Ingredient] = [],
         steps: [String] = [],
         notes: String = "",
-        servings: Int = 2,
+        servings: Int? = nil,
         prepTimeMinutes: Int = 0,
         cookTimeMinutes: Int = 0,
         caloriesPerServing: Int? = nil,
@@ -37,7 +37,7 @@ final class Recipe {
     ) {
         self.title = title
         self.cuisine = cuisine
-        self.scene = scene
+        self.scenes = scenes
         self.mainIngredients = mainIngredients
         self.sideIngredients = sideIngredients
         self.seasonings = seasonings
@@ -56,9 +56,12 @@ final class Recipe {
         prepTimeMinutes + cookTimeMinutes
     }
 
-    /// All ingredients combined for matching
     var allIngredients: [Ingredient] {
         mainIngredients + sideIngredients + seasonings
+    }
+
+    func hasScene(_ scene: MealScene) -> Bool {
+        scenes.contains(scene)
     }
 }
 

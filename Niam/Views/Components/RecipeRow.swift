@@ -17,13 +17,15 @@ struct RecipeRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(recipe.title)
                     .font(.headline)
-                HStack(spacing: 8) {
-                    Text(recipe.scene.rawValue)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.fill.tertiary)
-                        .clipShape(Capsule())
+                HStack(spacing: 4) {
+                    ForEach(recipe.scenes.prefix(2), id: \.self) { scene in
+                        Text(scene.rawValue)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.fill.tertiary)
+                            .clipShape(Capsule())
+                    }
                     Text(recipe.cuisine.rawValue)
                         .font(.caption2)
                         .padding(.horizontal, 6)

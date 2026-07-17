@@ -132,12 +132,14 @@ struct AddMealRecordView: View {
         if let cal = recipe.caloriesPerServing {
             calories = String(cal)
         }
-        // Map recipe scene to meal type
-        switch recipe.scene {
-        case .breakfast: mealType = .breakfast
-        case .mainMeal, .lateNight: mealType = .dinner
-        case .afternoonTea, .snack: mealType = .snack
-        case .drink, .dessert: mealType = .snack
+        // Map first recipe scene to meal type
+        if let firstScene = recipe.scenes.first {
+            switch firstScene {
+            case .breakfast: mealType = .breakfast
+            case .mainMeal, .lateNight: mealType = .dinner
+            case .afternoonTea, .snack: mealType = .snack
+            case .drink, .dessert: mealType = .snack
+            }
         }
     }
 
@@ -189,13 +191,15 @@ private struct RecipePickerSheet: View {
                             Text(recipe.title)
                                 .font(.headline)
                             HStack(spacing: 6) {
-                                Text(recipe.scene.rawValue)
-                                    .font(.caption2)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(.orange.opacity(0.15))
-                                    .foregroundStyle(.orange)
-                                    .clipShape(Capsule())
+                                ForEach(recipe.scenes.prefix(2), id: \.self) { scene in
+                                    Text(scene.rawValue)
+                                        .font(.caption2)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(.orange.opacity(0.15))
+                                        .foregroundStyle(.orange)
+                                        .clipShape(Capsule())
+                                }
                                 if let cal = recipe.caloriesPerServing {
                                     Text("\(cal) kcal")
                                         .font(.caption)

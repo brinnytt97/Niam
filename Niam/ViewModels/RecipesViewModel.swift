@@ -22,14 +22,14 @@ final class RecipesViewModel {
             result = result.filter {
                 $0.title.localizedCaseInsensitiveContains(searchText) ||
                 $0.cuisine.rawValue.localizedCaseInsensitiveContains(searchText) ||
-                $0.scene.rawValue.localizedCaseInsensitiveContains(searchText)
+                $0.scenes.contains { $0.rawValue.localizedCaseInsensitiveContains(searchText) }
             }
         }
         if showFavoritesOnly {
             result = result.filter { $0.isFavorite }
         }
         if let scene = filterScene {
-            result = result.filter { $0.scene == scene }
+            result = result.filter { $0.hasScene(scene) }
         }
         return result
     }

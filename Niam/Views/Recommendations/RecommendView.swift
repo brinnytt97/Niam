@@ -96,13 +96,15 @@ private struct RecommendContent: View {
                             }
 
                             HStack(spacing: 8) {
-                                Text(scored.recipe.scene.rawValue)
-                                    .font(.caption2)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(.orange.opacity(0.15))
-                                    .foregroundStyle(.orange)
-                                    .clipShape(Capsule())
+                                ForEach(scored.recipe.scenes.prefix(2), id: \.self) { scene in
+                                    Text(scene.rawValue)
+                                        .font(.caption2)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(.orange.opacity(0.15))
+                                        .foregroundStyle(.orange)
+                                        .clipShape(Capsule())
+                                }
 
                                 if let cal = scored.recipe.caloriesPerServing {
                                     Label("\(cal) kcal", systemImage: "flame")
