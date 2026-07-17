@@ -40,6 +40,31 @@ final class TrackerViewModel {
         CalorieCalculator.macroTotals(consumed: records, for: selectedDate)
     }
 
+    struct DailyCalorie: Identifiable {
+        let id = UUID()
+        let date: Date
+        let calories: Int
+        let target: Int
+
+        var dayLabel: String {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "E"
+            return formatter.string(from: date)
+        }
+    }
+
+    var weeklyData: [DailyCalorie] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: selectedDate)
+        let target = dailyTarget
+
+        return (0..<7).reversed().compactMap { daysAgo in
+            guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: today) else { return nil }
+            let cals = CalorieCalculator.totalCalories(consumed: records, for: date)
+            return DailyCalorie(date: date, calories: cals, target: target)
+        }
+    }
+
     func fetchData() {
         let recordDescriptor = FetchDescriptor<MealRecord>(
             sortBy: [SortDescriptor(\.date, order: .reverse)]

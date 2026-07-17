@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Charts
 
 struct TrackerView: View {
     @Environment(\.modelContext) private var context
@@ -93,6 +94,12 @@ private struct TrackerContent: View {
                 }
             }
 
+            // MARK: - Weekly Trend Chart
+            Section("Weekly Trend") {
+                WeeklyCalorieChart(data: viewModel.weeklyData)
+                    .frame(height: 180)
+            }
+
             Section("Today's Meals") {
                 ForEach(viewModel.todayRecords) { record in
                     MealRecordRow(record: record)
@@ -168,5 +175,36 @@ private struct MealRecordRow: View {
                 .font(.subheadline)
                 .foregroundStyle(.orange)
         }
+    }
+}
+
+// MARK: - Weekly Calorie Chart
+
+private struct WeeklyCalorieChart: View {
+    let data: [TrackerViewModel.DailyCalorie]
+
+    var body: some View {
+        Chart {
+            ForEach(data) { day in
+                BarMark(
+                    x: .value("Day", day.dayLabel),
+                    y: .value("Calories", day.calories)
+                )
+                .foregroundStyle(day.calories > day.target ? .red : .orange)
+                .cornerRadius(4)
+            }
+
+            if let target = data.first?.target, target > 0 {
+                RuleMark(y: .value("Target", target))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+                    .foregroundStyle(.green)
+                    .annotation(position: .top, alignment: .trailing) {
+                        Text("Target")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                    }
+            }
+        }
+        .chartYAxisLabel("kcal")
     }
 }
