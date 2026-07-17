@@ -6,9 +6,31 @@ struct RecipeRow: View {
 
     var body: some View {
         HStack {
+            if let data = recipe.imageData, let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(recipe.title)
                     .font(.headline)
+                HStack(spacing: 8) {
+                    Text(recipe.scene.rawValue)
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.fill.tertiary)
+                        .clipShape(Capsule())
+                    Text(recipe.cuisine.rawValue)
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.fill.tertiary)
+                        .clipShape(Capsule())
+                }
                 HStack(spacing: 8) {
                     if let cal = recipe.caloriesPerServing {
                         Label("\(cal) kcal", systemImage: "flame")
@@ -16,23 +38,13 @@ struct RecipeRow: View {
                     if recipe.totalTimeMinutes > 0 {
                         Label("\(recipe.totalTimeMinutes) min", systemImage: "clock")
                     }
-                    Text("\(recipe.ingredients.count) ingredients")
+                    let count = recipe.mainIngredients.count + recipe.sideIngredients.count
+                    if count > 0 {
+                        Text("\(count) ingredients")
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-
-                if !recipe.tags.isEmpty {
-                    HStack(spacing: 4) {
-                        ForEach(recipe.tags.prefix(3), id: \.self) { tag in
-                            Text(tag)
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(.fill.tertiary)
-                                .clipShape(Capsule())
-                        }
-                    }
-                }
             }
 
             Spacer()

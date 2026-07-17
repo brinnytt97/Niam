@@ -16,6 +16,9 @@ struct RecipesView: View {
                 }
             }
             .navigationTitle("Recipes")
+            .navigationDestination(for: Recipe.self) { recipe in
+                RecipeDetailView(recipe: recipe)
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -26,10 +29,24 @@ struct RecipesView: View {
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     if let vm = viewModel {
-                        Button {
-                            vm.showFavoritesOnly.toggle()
+                        Menu {
+                            Button {
+                                vm.showFavoritesOnly.toggle()
+                            } label: {
+                                Label(
+                                    vm.showFavoritesOnly ? "Show All" : "Favorites Only",
+                                    systemImage: vm.showFavoritesOnly ? "heart.slash" : "heart.fill"
+                                )
+                            }
+
+                            Menu("Filter by Scene") {
+                                Button("All") { vm.filterScene = nil }
+                                ForEach(MealScene.allCases, id: \.self) { scene in
+                                    Button(scene.rawValue) { vm.filterScene = scene }
+                                }
+                            }
                         } label: {
-                            Image(systemName: vm.showFavoritesOnly ? "heart.fill" : "heart")
+                            Image(systemName: "line.3.horizontal.decrease.circle")
                         }
                     }
                 }

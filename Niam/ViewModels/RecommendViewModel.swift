@@ -6,6 +6,7 @@ import Observation
 final class RecommendViewModel {
     var recommendations: [RecommendationService.ScoredRecipe] = []
     var filters = RecommendationFilters()
+    var selectedMeal: MealScene? = nil
     var isLoading = false
 
     private let context: ModelContext
@@ -31,18 +32,27 @@ final class RecommendViewModel {
         let records = (try? context.fetch(recordDescriptor)) ?? []
         let profile = (try? context.fetch(profileDescriptor))?.first
 
-        let remaining: Int? = profile.map {
-            CalorieCalculator.remainingCalories(
-                target: $0.dailyCalorieTarget,
-                consumed: records
-            )
+        // For breakfast, don't filter by calories
+        let remaining: Int?
+        if selectedMeal == .breakfast {
+            remaining = nil
+        } else {
+            remaining = profile.map {
+                CalorieCalculator.remainingCalories(
+                    target: $0.dailyCalorieTarget,
+                    consumed: records
+                )
+            }
         }
+
+        var activeFilters = filters
+        activeFilters.scene = selectedMeal
 
         recommendations = RecommendationService.recommend(
             recipes: recipes,
             fridgeItems: fridgeItems,
             remainingCalories: remaining,
-            filters: filters
+            filters: activeFilters
         )
     }
 }

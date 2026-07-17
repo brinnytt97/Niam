@@ -7,6 +7,7 @@ final class RecipesViewModel {
     var recipes: [Recipe] = []
     var searchText: String = ""
     var showFavoritesOnly: Bool = false
+    var filterScene: MealScene?
 
     private let context: ModelContext
 
@@ -20,11 +21,15 @@ final class RecipesViewModel {
         if !searchText.isEmpty {
             result = result.filter {
                 $0.title.localizedCaseInsensitiveContains(searchText) ||
-                $0.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
+                $0.cuisine.rawValue.localizedCaseInsensitiveContains(searchText) ||
+                $0.scene.rawValue.localizedCaseInsensitiveContains(searchText)
             }
         }
         if showFavoritesOnly {
             result = result.filter { $0.isFavorite }
+        }
+        if let scene = filterScene {
+            result = result.filter { $0.scene == scene }
         }
         return result
     }

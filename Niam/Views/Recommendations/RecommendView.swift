@@ -30,6 +30,32 @@ private struct RecommendContent: View {
 
     var body: some View {
         List {
+            // MARK: - Meal Picker
+            Section {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        MealChip(
+                            title: "All",
+                            isSelected: viewModel.selectedMeal == nil
+                        ) {
+                            viewModel.selectedMeal = nil
+                            viewModel.generateRecommendations()
+                        }
+                        ForEach(MealScene.allCases, id: \.self) { scene in
+                            MealChip(
+                                title: scene.rawValue,
+                                isSelected: viewModel.selectedMeal == scene
+                            ) {
+                                viewModel.selectedMeal = scene
+                                viewModel.generateRecommendations()
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
+            // MARK: - Filters
             Section {
                 HStack {
                     Text("Min Match")
@@ -38,11 +64,12 @@ private struct RecommendContent: View {
                         .frame(width: 40)
                 }
 
-                Button("Refresh Recommendations") {
+                Button("Refresh") {
                     viewModel.generateRecommendations()
                 }
             }
 
+            // MARK: - Results
             if viewModel.recommendations.isEmpty {
                 Section {
                     ContentUnavailableView(
@@ -52,7 +79,7 @@ private struct RecommendContent: View {
                     )
                 }
             } else {
-                Section("Based on Your Fridge (\(viewModel.recommendations.count))") {
+                Section("Matches (\(viewModel.recommendations.count))") {
                     ForEach(viewModel.recommendations, id: \.recipe.id) { scored in
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
@@ -68,18 +95,24 @@ private struct RecommendContent: View {
                                     .clipShape(Capsule())
                             }
 
-                            if let cal = scored.recipe.caloriesPerServing {
-                                HStack {
+                            HStack(spacing: 8) {
+                                Text(scored.recipe.scene.rawValue)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(.orange.opacity(0.15))
+                                    .foregroundStyle(.orange)
+                                    .clipShape(Capsule())
+
+                                if let cal = scored.recipe.caloriesPerServing {
                                     Label("\(cal) kcal", systemImage: "flame")
+                                        .font(.caption)
                                     if scored.caloriesFit {
                                         Label("Fits budget", systemImage: "checkmark.circle.fill")
+                                            .font(.caption)
                                             .foregroundStyle(.green)
-                                    } else {
-                                        Label("Over budget", systemImage: "exclamationmark.circle")
-                                            .foregroundStyle(.orange)
                                     }
                                 }
-                                .font(.caption)
                             }
 
                             if !scored.missingIngredients.isEmpty {
@@ -99,5 +132,24 @@ private struct RecommendContent: View {
         if ratio >= 0.8 { return .green }
         if ratio >= 0.5 { return .orange }
         return .red
+    }
+}
+
+private struct MealChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isSelected ? Color.accentColor : Color(.systemGray5))
+                .foregroundStyle(isSelected ? .white : .primary)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
