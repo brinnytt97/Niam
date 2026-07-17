@@ -1,12 +1,13 @@
 import Foundation
 import SwiftData
+import UserNotifications
 import Observation
 
 @Observable
 final class FastingViewModel {
     var currentSession: FastingSession?
     var history: [FastingSession] = []
-    var selectedPlan: FastingPlan = .sixteen8
+    var targetHours: Int = 16
 
     private let context: ModelContext
 
@@ -34,15 +35,17 @@ final class FastingViewModel {
     }
 
     func startFasting() {
-        let session = FastingSession(startTime: .now, plan: selectedPlan)
+        let session = FastingSession(startTime: .now, targetHours: targetHours)
         context.insert(session)
         try? context.save()
         currentSession = session
+        scheduleNotification(targetDate: session.targetEndTime, hours: targetHours)
     }
 
     func stopFasting() {
         currentSession?.endTime = .now
         try? context.save()
+        cancelNotification()
         fetchData()
     }
 
@@ -53,6 +56,40 @@ final class FastingViewModel {
         let all = (try? context.fetch(descriptor)) ?? []
         currentSession = all.first { $0.isActive }
         history = all.filter { !$0.isActive }
+
+        if let active = currentSession {
+            targetHours = active.targetHours
+        }
+    }
+
+    func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+    }
+
+    private func scheduleNotification(targetDate: Date, hours: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = "Fasting Complete!"
+        content.body = "You've completed your \(hours)-hour fast. Great job!"
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: max(1, targetDate.timeIntervalSince(.now)),
+            repeats: false
+        )
+
+        let request = UNNotificationRequest(
+            identifier: "fasting-complete",
+            content: content,
+            trigger: trigger
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func cancelNotification() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: ["fasting-complete"]
+        )
     }
 
     private func formatTimeInterval(_ interval: TimeInterval) -> String {

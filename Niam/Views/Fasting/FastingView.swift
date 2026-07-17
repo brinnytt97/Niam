@@ -19,6 +19,7 @@ struct FastingView: View {
             .onAppear {
                 if viewModel == nil {
                     viewModel = FastingViewModel(context: context)
+                    viewModel?.requestNotificationPermission()
                 }
                 startTimer()
             }
@@ -30,7 +31,6 @@ struct FastingView: View {
 
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            // Force SwiftUI to re-evaluate the view
             viewModel?.fetchData()
         }
     }
@@ -42,7 +42,7 @@ private struct FastingContent: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Timer Circle
+                // MARK: - Timer Circle
                 ZStack {
                     Circle()
                         .stroke(.gray.opacity(0.2), lineWidth: 12)
@@ -65,6 +65,9 @@ private struct FastingContent: View {
                             .font(.system(size: 40, weight: .bold, design: .monospaced))
 
                         if viewModel.isActive {
+                            Text("Target: \(viewModel.targetHours)h")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                             Text("Remaining: \(viewModel.remainingFormatted)")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
@@ -74,18 +77,46 @@ private struct FastingContent: View {
                 .frame(width: 260, height: 260)
                 .padding(.top, 20)
 
-                // Plan Picker
+                // MARK: - Custom Duration Picker
                 if !viewModel.isActive {
-                    Picker("Plan", selection: $viewModel.selectedPlan) {
-                        ForEach(FastingPlan.allCases, id: \.self) { plan in
-                            Text(plan.rawValue).tag(plan)
+                    VStack(spacing: 8) {
+                        Text("Fasting Duration")
+                            .font(.headline)
+
+                        HStack(spacing: 0) {
+                            Stepper(
+                                "\(viewModel.targetHours) hours",
+                                value: $viewModel.targetHours,
+                                in: 1...48
+                            )
+                        }
+                        .padding(.horizontal)
+
+                        // Quick presets
+                        HStack(spacing: 10) {
+                            ForEach([13, 14, 16, 18, 20], id: \.self) { hours in
+                                Button("\(hours)h") {
+                                    viewModel.targetHours = hours
+                                }
+                                .font(.subheadline)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(
+                                    viewModel.targetHours == hours
+                                        ? Color.accentColor
+                                        : Color(.systemGray5)
+                                )
+                                .foregroundStyle(
+                                    viewModel.targetHours == hours ? .white : .primary
+                                )
+                                .clipShape(Capsule())
+                            }
                         }
                     }
-                    .pickerStyle(.segmented)
                     .padding(.horizontal)
                 }
 
-                // Start / Stop Button
+                // MARK: - Start / Stop Button
                 Button {
                     if viewModel.isActive {
                         viewModel.stopFasting()
@@ -103,7 +134,7 @@ private struct FastingContent: View {
                 }
                 .padding(.horizontal)
 
-                // History
+                // MARK: - History
                 if !viewModel.history.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("History")
@@ -113,7 +144,7 @@ private struct FastingContent: View {
                         ForEach(viewModel.history.prefix(10)) { session in
                             HStack {
                                 VStack(alignment: .leading) {
-                                    Text(session.plan.rawValue)
+                                    Text("\(session.targetHours)h target")
                                         .font(.subheadline.bold())
                                     Text(session.startTime, style: .date)
                                         .font(.caption)

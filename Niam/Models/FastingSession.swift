@@ -5,15 +5,15 @@ import SwiftData
 final class FastingSession {
     var startTime: Date
     var endTime: Date?
-    var plan: FastingPlan
+    var targetHours: Int
 
-    init(startTime: Date = .now, plan: FastingPlan = .sixteen8) {
+    init(startTime: Date = .now, targetHours: Int = 16) {
         self.startTime = startTime
-        self.plan = plan
+        self.targetHours = targetHours
     }
 
     var targetEndTime: Date {
-        Calendar.current.date(byAdding: .hour, value: plan.fastingHours, to: startTime)!
+        Calendar.current.date(byAdding: .hour, value: targetHours, to: startTime)!
     }
 
     var isActive: Bool {
@@ -30,27 +30,7 @@ final class FastingSession {
     }
 
     var progress: Double {
-        let total = TimeInterval(plan.fastingHours * 3600)
+        let total = TimeInterval(targetHours * 3600)
         return min(1.0, elapsedSeconds / total)
-    }
-}
-
-enum FastingPlan: String, Codable, CaseIterable {
-    case sixteen8 = "16:8"
-    case eighteen6 = "18:6"
-    case twenty4 = "20:4"
-    case omad = "OMAD (23:1)"
-
-    var fastingHours: Int {
-        switch self {
-        case .sixteen8: 16
-        case .eighteen6: 18
-        case .twenty4: 20
-        case .omad: 23
-        }
-    }
-
-    var eatingHours: Int {
-        24 - fastingHours
     }
 }

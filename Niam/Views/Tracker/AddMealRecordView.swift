@@ -1,7 +1,9 @@
 import SwiftUI
+import SwiftData
 
 struct AddMealRecordView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
 
     @State private var name = ""
     @State private var mealType: MealType = .lunch
@@ -10,6 +12,10 @@ struct AddMealRecordView: View {
     @State private var carbs = ""
     @State private var fat = ""
     @State private var notes = ""
+
+    // Recipe picker
+    @State private var showingRecipePicker = false
+    @State private var recipes: [Recipe] = []
 
     // Nutrition search
     @State private var searchResults: [NutritionService.FoodItem] = []
@@ -20,6 +26,17 @@ struct AddMealRecordView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: - Pick from Recipe
+                Section {
+                    Button {
+                        loadRecipes()
+                        showingRecipePicker = true
+                    } label: {
+                        Label("Pick from My Recipes", systemImage: "book.fill")
+                    }
+                }
+
+                // MARK: - Food Name + USDA Search
                 Section("Food") {
                     TextField("Food name", text: $name)
                         .onSubmit { searchNutrition() }
@@ -48,6 +65,7 @@ struct AddMealRecordView: View {
                     }
                 }
 
+                // MARK: - Meal Type
                 Section("Meal Type") {
                     Picker("Type", selection: $mealType) {
                         ForEach(MealType.allCases, id: \.self) { type in
@@ -57,41 +75,15 @@ struct AddMealRecordView: View {
                     .pickerStyle(.segmented)
                 }
 
+                // MARK: - Nutrition
                 Section("Nutrition (per serving)") {
-                    HStack {
-                        Text("Calories")
-                        Spacer()
-                        TextField("kcal", text: $calories)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("Protein")
-                        Spacer()
-                        TextField("g", text: $protein)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("Carbs")
-                        Spacer()
-                        TextField("g", text: $carbs)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("Fat")
-                        Spacer()
-                        TextField("g", text: $fat)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
+                    NutritionRow(label: "Calories", value: $calories, unit: "kcal", isInteger: true)
+                    NutritionRow(label: "Protein", value: $protein, unit: "g", isInteger: false)
+                    NutritionRow(label: "Carbs", value: $carbs, unit: "g", isInteger: false)
+                    NutritionRow(label: "Fat", value: $fat, unit: "g", isInteger: false)
                 }
 
+                // MARK: - Notes
                 Section("Notes") {
                     TextField("Notes (optional)", text: $notes, axis: .vertical)
                         .lineLimit(2)
@@ -120,6 +112,32 @@ struct AddMealRecordView: View {
                     .disabled(name.isEmpty)
                 }
             }
+            .sheet(isPresented: $showingRecipePicker) {
+                RecipePickerSheet(recipes: recipes) { recipe in
+                    applyRecipe(recipe)
+                }
+            }
+        }
+    }
+
+    private func loadRecipes() {
+        let descriptor = FetchDescriptor<Recipe>(
+            sortBy: [SortDescriptor(\.createdDate, order: .reverse)]
+        )
+        recipes = (try? context.fetch(descriptor)) ?? []
+    }
+
+    private func applyRecipe(_ recipe: Recipe) {
+        name = recipe.title
+        if let cal = recipe.caloriesPerServing {
+            calories = String(cal)
+        }
+        // Map recipe scene to meal type
+        switch recipe.scene {
+        case .breakfast: mealType = .breakfast
+        case .mainMeal, .lateNight: mealType = .dinner
+        case .afternoonTea, .snack: mealType = .snack
+        case .drink, .dessert: mealType = .snack
         }
     }
 
@@ -142,5 +160,93 @@ struct AddMealRecordView: View {
         if let c = food.carbs { carbs = String(format: "%.1f", c) }
         if let f = food.fat { fat = String(format: "%.1f", f) }
         searchResults = []
+    }
+}
+
+// MARK: - Recipe Picker Sheet
+
+private struct RecipePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let recipes: [Recipe]
+    let onPick: (Recipe) -> Void
+
+    @State private var searchText = ""
+
+    var filtered: [Recipe] {
+        if searchText.isEmpty { return recipes }
+        return recipes.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List(filtered) { recipe in
+                Button {
+                    onPick(recipe)
+                    dismiss()
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(recipe.title)
+                                .font(.headline)
+                            HStack(spacing: 6) {
+                                Text(recipe.scene.rawValue)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(.orange.opacity(0.15))
+                                    .foregroundStyle(.orange)
+                                    .clipShape(Capsule())
+                                if let cal = recipe.caloriesPerServing {
+                                    Text("\(cal) kcal")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
+            .searchable(text: $searchText, prompt: "Search recipes...")
+            .navigationTitle("Pick Recipe")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+            .overlay {
+                if recipes.isEmpty {
+                    ContentUnavailableView(
+                        "No Recipes",
+                        systemImage: "book",
+                        description: Text("Add recipes first")
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Nutrition Row
+
+private struct NutritionRow: View {
+    let label: String
+    @Binding var value: String
+    let unit: String
+    let isInteger: Bool
+
+    var body: some View {
+        HStack {
+            Text(label)
+            Spacer()
+            TextField(unit, text: $value)
+                .keyboardType(isInteger ? .numberPad : .decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+        }
     }
 }
