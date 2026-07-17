@@ -1,5 +1,5 @@
 import Testing
-@testable import MealMind
+@testable import Niam
 
 @Suite("UserProfile TDEE Calculation")
 struct UserProfileTests {

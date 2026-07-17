@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct MealMindApp: App {
+struct NiamApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
