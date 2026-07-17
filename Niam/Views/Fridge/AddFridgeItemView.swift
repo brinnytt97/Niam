@@ -11,12 +11,43 @@ struct AddFridgeItemView: View {
     @State private var expirationDate = Calendar.current.date(byAdding: .day, value: 7, to: .now)!
     @State private var notes = ""
     @State private var shelfLifeHint: String?
+    @State private var showingScanner = false
+    @State private var isLookingUp = false
+    @State private var scanResult: String?
 
     var onSave: (FridgeItem) -> Void
 
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: - Barcode Scanner
+                Section {
+                    Button {
+                        showingScanner = true
+                    } label: {
+                        Label("Scan Barcode", systemImage: "barcode.viewfinder")
+                    }
+
+                    if isLookingUp {
+                        HStack {
+                            ProgressView()
+                            Text("Looking up product...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let result = scanResult {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text(result)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
                 Section("Basic Info") {
                     TextField("Name", text: $name)
                         .onChange(of: name) { _, newValue in
@@ -84,6 +115,33 @@ struct AddFridgeItemView: View {
                     .disabled(name.isEmpty)
                 }
             }
+            .sheet(isPresented: $showingScanner) {
+                BarcodeScannerView { barcode in
+                    showingScanner = false
+                    lookupBarcode(barcode)
+                }
+            }
+        }
+    }
+
+    private func lookupBarcode(_ barcode: String) {
+        isLookingUp = true
+        scanResult = nil
+        Task {
+            do {
+                if let product = try await OpenFoodFactsService.lookup(barcode: barcode) {
+                    let productName = product.productName ?? "Unknown"
+                    let brand = product.brands ?? ""
+                    name = brand.isEmpty ? productName : "\(brand) \(productName)"
+                    scanResult = "Found: \(name)"
+                    autoFillFromShelfLife(name)
+                } else {
+                    scanResult = "Product not found for barcode: \(barcode)"
+                }
+            } catch {
+                scanResult = "Lookup failed"
+            }
+            isLookingUp = false
         }
     }
 
