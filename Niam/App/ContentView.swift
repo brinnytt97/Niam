@@ -1,49 +1,43 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selectedTab: AppTab = .fridge
+    @State private var selectedTab: AppTab = .browse
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            FridgeView()
+            BrowseView()
                 .tabItem {
-                    Label("Fridge", systemImage: "refrigerator")
+                    Label("Browse", systemImage: "magnifyingglass")
                 }
-                .tag(AppTab.fridge)
+                .tag(AppTab.browse)
 
-            RecipesView()
+            KitchenView()
                 .tabItem {
-                    Label("Recipes", systemImage: "book")
+                    Label("Kitchen", systemImage: "refrigerator")
                 }
-                .tag(AppTab.recipes)
+                .tag(AppTab.kitchen)
 
-            TrackerView()
+            TrackerTabView()
                 .tabItem {
                     Label("Tracker", systemImage: "chart.bar")
                 }
                 .tag(AppTab.tracker)
 
-            FastingView()
+            MeView()
                 .tabItem {
-                    Label("Fasting", systemImage: "timer")
+                    Label("Me", systemImage: "person")
                 }
-                .tag(AppTab.fasting)
-
-            RecommendView()
-                .tabItem {
-                    Label("Recommend", systemImage: "sparkles")
-                }
-                .tag(AppTab.recommend)
+                .tag(AppTab.me)
         }
+        .tint(Color(red: 0.95, green: 0.22, blue: 0.24))
     }
 }
 
 enum AppTab: Hashable {
-    case fridge
-    case recipes
+    case browse
+    case kitchen
     case tracker
-    case fasting
-    case recommend
+    case me
 }
 
 #Preview {
