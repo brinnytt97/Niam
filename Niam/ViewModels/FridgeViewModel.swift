@@ -44,10 +44,12 @@ final class FridgeViewModel {
     func addItem(_ item: FridgeItem) {
         context.insert(item)
         try? context.save()
+        ExpirationNotificationService.schedule(for: item)
         fetchItems()
     }
 
     func deleteItem(_ item: FridgeItem) {
+        ExpirationNotificationService.cancel(for: item)
         context.delete(item)
         try? context.save()
         fetchItems()

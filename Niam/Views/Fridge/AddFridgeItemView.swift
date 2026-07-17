@@ -10,6 +10,7 @@ struct AddFridgeItemView: View {
     @State private var hasExpiration = false
     @State private var expirationDate = Calendar.current.date(byAdding: .day, value: 7, to: .now)!
     @State private var notes = ""
+    @State private var shelfLifeHint: String?
 
     var onSave: (FridgeItem) -> Void
 
@@ -18,6 +19,21 @@ struct AddFridgeItemView: View {
             Form {
                 Section("Basic Info") {
                     TextField("Name", text: $name)
+                        .onChange(of: name) { _, newValue in
+                            autoFillFromShelfLife(newValue)
+                        }
+
+                    // Show shelf life hint if matched
+                    if let hint = shelfLifeHint {
+                        HStack {
+                            Image(systemName: "lightbulb.fill")
+                                .foregroundStyle(.yellow)
+                            Text(hint)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
                     HStack {
                         TextField("Quantity", value: $quantity, format: .number)
                             .keyboardType(.decimalPad)
@@ -68,6 +84,33 @@ struct AddFridgeItemView: View {
                     .disabled(name.isEmpty)
                 }
             }
+        }
+    }
+
+    private func autoFillFromShelfLife(_ ingredientName: String) {
+        guard ingredientName.count >= 1 else {
+            shelfLifeHint = nil
+            return
+        }
+
+        if let days = ShelfLifeService.estimatedDays(for: ingredientName) {
+            // Auto-enable expiration and set date
+            hasExpiration = true
+            expirationDate = Calendar.current.date(byAdding: .day, value: days, to: .now)!
+
+            // Show hint
+            if days >= 365 {
+                shelfLifeHint = "Shelf life: ~\(days / 365) year(s)"
+            } else {
+                shelfLifeHint = "Shelf life: ~\(days) days (auto-set)"
+            }
+
+            // Auto-set category
+            if let suggestedCategory = ShelfLifeService.suggestedCategory(for: ingredientName) {
+                category = suggestedCategory
+            }
+        } else {
+            shelfLifeHint = nil
         }
     }
 }
