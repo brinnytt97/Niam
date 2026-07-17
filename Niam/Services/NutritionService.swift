@@ -3,11 +3,8 @@ import Foundation
 /// USDA FoodData Central API client
 struct NutritionService {
     private static let baseURL = "https://api.nal.usda.gov/fdc/v1"
-    // Free API key — register at https://fdc.nal.usda.gov/api-key-signup.html
-    // Replace with your own key
     private static var apiKey: String {
-        // TODO: Move to a config or keychain
-        "DEMO_KEY"
+        Secrets.usdaApiKey
     }
 
     struct SearchResult: Codable {
