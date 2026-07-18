@@ -95,9 +95,30 @@ struct KitchenView: View {
                         .padding(.top, 16)
                         .padding(.bottom, 8)
 
-                        // Scene filter
+                        // Scene filter + favorites
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
+                                // Favorites toggle
+                                Button {
+                                    vm.showFavoritesOnly.toggle()
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: vm.showFavoritesOnly ? "heart.fill" : "heart")
+                                            .font(.caption)
+                                        Text("Favorites")
+                                            .font(.caption.weight(vm.showFavoritesOnly ? .semibold : .regular))
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(vm.showFavoritesOnly ? .red : .white)
+                                    .foregroundStyle(vm.showFavoritesOnly ? .white : .primary)
+                                    .clipShape(Capsule())
+                                    .overlay(
+                                        Capsule().stroke(Color(.systemGray4), lineWidth: vm.showFavoritesOnly ? 0 : 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+
                                 sceneChip("All", scene: nil, vm: vm)
                                 ForEach(MealScene.allCases, id: \.self) { scene in
                                     sceneChip(scene.rawValue, scene: scene, vm: vm)

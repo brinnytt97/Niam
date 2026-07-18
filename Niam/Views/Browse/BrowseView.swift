@@ -39,6 +39,9 @@ struct BrowseView: View {
                 }
             }
             .background(.white)
+            .navigationDestination(for: Recipe.self) { recipe in
+                RecipeDetailView(recipe: recipe)
+            }
             .onAppear { loadData() }
             .onChange(of: selectedMeal) { _, _ in loadRecommendations() }
         }
@@ -131,7 +134,10 @@ struct BrowseView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 ForEach(recommendations.prefix(6), id: \.recipe.id) { scored in
-                    RecommendCard(scored: scored)
+                    NavigationLink(value: scored.recipe) {
+                        RecommendCard(scored: scored)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 24)
