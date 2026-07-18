@@ -20,7 +20,7 @@ struct KitchenView: View {
                 // MARK: - Header
                 VStack(spacing: 16) {
                     HStack {
-                        Text("My Kitchen")
+                        Text("Niam")
                             .font(.system(size: 28, weight: .bold))
                         Spacer()
                     }
@@ -29,7 +29,7 @@ struct KitchenView: View {
                     // Segmented control
                     Picker("", selection: $selectedSegment) {
                         Text("Recipes").tag(0)
-                        Text("Fridge").tag(1)
+                        Text("Kitchen").tag(1)
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 24)
