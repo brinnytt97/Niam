@@ -3,9 +3,10 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
+    @State private var displayName: String
     @State private var height: Double
     @State private var weight: Double
-    @State private var age: Int
+    @State private var birthYear: Int
     @State private var sex: BiologicalSex
     @State private var activity: ActivityLevel
     @State private var goal: DietGoal
@@ -14,9 +15,10 @@ struct ProfileView: View {
 
     init(existingProfile: UserProfile?, onSave: @escaping (UserProfile) -> Void) {
         let p = existingProfile
+        _displayName = State(initialValue: p?.displayName ?? "there")
         _height = State(initialValue: p?.heightCm ?? 170)
         _weight = State(initialValue: p?.weightKg ?? 70)
-        _age = State(initialValue: p?.age ?? 25)
+        _birthYear = State(initialValue: p?.birthYear ?? 2000)
         _sex = State(initialValue: p?.biologicalSex ?? .male)
         _activity = State(initialValue: p?.activityLevel ?? .moderate)
         _goal = State(initialValue: p?.goal ?? .maintain)
@@ -25,9 +27,10 @@ struct ProfileView: View {
 
     private var previewProfile: UserProfile {
         UserProfile(
+            displayName: displayName,
             heightCm: height,
             weightKg: weight,
-            age: age,
+            birthYear: birthYear,
             biologicalSex: sex,
             activityLevel: activity,
             goal: goal
@@ -37,6 +40,10 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Name") {
+                    TextField("Display name", text: $displayName)
+                }
+
                 Section("Body") {
                     HStack {
                         Text("Height")
@@ -56,7 +63,11 @@ struct ProfileView: View {
                             .frame(width: 80)
                         Text("kg")
                     }
-                    Stepper("Age: \(age)", value: $age, in: 10...100)
+                    Picker("Birth Year", selection: $birthYear) {
+                        ForEach(1940...2015, id: \.self) { year in
+                            Text(String(year)).tag(year)
+                        }
+                    }
                     Picker("Sex", selection: $sex) {
                         ForEach(BiologicalSex.allCases, id: \.self) { s in
                             Text(s.rawValue).tag(s)

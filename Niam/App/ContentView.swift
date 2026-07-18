@@ -1,9 +1,34 @@
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var context
     @State private var selectedTab: AppTab = .browse
+    @State private var showOnboarding = false
+    @State private var hasCheckedProfile = false
 
     var body: some View {
+        Group {
+            if showOnboarding {
+                OnboardingView {
+                    showOnboarding = false
+                }
+            } else {
+                mainTabView
+            }
+        }
+        .onAppear {
+            guard !hasCheckedProfile else { return }
+            hasCheckedProfile = true
+            let descriptor = FetchDescriptor<UserProfile>()
+            let profiles = (try? context.fetch(descriptor)) ?? []
+            if profiles.isEmpty {
+                showOnboarding = true
+            }
+        }
+    }
+
+    private var mainTabView: some View {
         TabView(selection: $selectedTab) {
             BrowseView()
                 .tabItem {
@@ -47,6 +72,7 @@ enum AppTab: Hashable {
             Recipe.self,
             MealRecord.self,
             FastingSession.self,
-            UserProfile.self
+            UserProfile.self,
+            WaterIntake.self
         ], inMemory: true)
 }
