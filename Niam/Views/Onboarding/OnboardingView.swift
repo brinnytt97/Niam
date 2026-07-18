@@ -68,30 +68,23 @@ struct OnboardingView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
 
-            TextField("Your name", text: $displayName)
-                .font(.title3)
-                .padding()
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.top, 8)
+            // Name input with shuffle button
+            HStack(spacing: 12) {
+                TextField("Your name", text: $displayName)
+                    .font(.title3)
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            // Fun random names
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Or pick a fun name:")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                FlowLayout(spacing: 8) {
-                    ForEach(funNames, id: \.self) { name in
-                        Button(name) {
-                            displayName = name
-                        }
-                        .font(.subheadline)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                Button {
+                    displayName = funNames.randomElement() ?? "Chef"
+                } label: {
+                    Image(systemName: "shuffle")
+                        .font(.title3)
+                        .foregroundStyle(.primary)
+                        .frame(width: 52, height: 52)
                         .background(Color(.systemGray6))
-                        .clipShape(Capsule())
-                    }
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
             .padding(.top, 8)
@@ -120,7 +113,6 @@ struct OnboardingView: View {
     private var genderStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             backButton
-            Spacer().frame(height: 20)
 
             Text("What is your gender?")
                 .font(.system(size: 28, weight: .bold))
@@ -149,7 +141,6 @@ struct OnboardingView: View {
     private var heightStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             backButton
-            Spacer().frame(height: 20)
 
             Text("What is your height?")
                 .font(.system(size: 28, weight: .bold))
@@ -181,7 +172,6 @@ struct OnboardingView: View {
     private var weightStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             backButton
-            Spacer().frame(height: 20)
 
             Text("What is your weight?")
                 .font(.system(size: 28, weight: .bold))
@@ -213,7 +203,6 @@ struct OnboardingView: View {
     private var birthYearStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             backButton
-            Spacer().frame(height: 20)
 
             Text("What year were you born?")
                 .font(.system(size: 28, weight: .bold))
@@ -245,7 +234,6 @@ struct OnboardingView: View {
     private var activityStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             backButton
-            Spacer().frame(height: 20)
 
             Text("How active are you?")
                 .font(.system(size: 28, weight: .bold))
@@ -257,8 +245,6 @@ struct OnboardingView: View {
                         step = 6
                     } label: {
                         HStack(spacing: 14) {
-                            Text(level.icon)
-                                .font(.title2)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(level.rawValue)
                                     .font(.subheadline.weight(.semibold))
@@ -290,14 +276,13 @@ struct OnboardingView: View {
     private var goalStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             backButton
-            Spacer().frame(height: 20)
 
             Text("What is your goal?")
                 .font(.system(size: 28, weight: .bold))
 
             VStack(spacing: 12) {
                 ForEach(DietGoal.allCases, id: \.self) { g in
-                    selectCard("\(g.icon)  \(g.rawValue)") {
+                    selectCard(g.rawValue) {
                         goal = g
                         saveProfileAndFinish()
                     }
@@ -315,9 +300,6 @@ struct OnboardingView: View {
     private var doneStep: some View {
         VStack(spacing: 24) {
             Spacer()
-
-            Text("🎉")
-                .font(.system(size: 64))
 
             Text("All set!")
                 .font(.system(size: 32, weight: .bold))
@@ -381,6 +363,8 @@ struct OnboardingView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
         }
+        .padding(.top, 24)
+        .padding(.bottom, 8)
     }
 
     private func selectCard(_ label: String, action: @escaping () -> Void) -> some View {
@@ -430,52 +414,15 @@ struct OnboardingView: View {
     }
 
     private let funNames = [
-        "Chef Panda 🐼",
-        "Kitchen Hero 🦸",
-        "Cooking Genius 🧠",
-        "Foodie Fox 🦊",
-        "Master Chef 👨‍🍳",
-        "Spice Queen 👑",
-        "Noodle King 🍜",
-        "Veggie Warrior 🥦",
+        "Chef Panda",
+        "Kitchen Hero",
+        "Cooking Genius",
+        "Foodie Fox",
+        "Master Chef",
+        "Spice Queen",
+        "Noodle King",
+        "Veggie Warrior",
+        "Flavor Hunter",
+        "Wok Star",
     ]
-}
-
-// Simple flow layout for fun name chips
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
-        }
-    }
-
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (positions: [CGPoint], size: CGSize) {
-        let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth && x > 0 {
-                x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            positions.append(CGPoint(x: x, y: y))
-            rowHeight = max(rowHeight, size.height)
-            x += size.width + spacing
-        }
-
-        return (positions, CGSize(width: maxWidth, height: y + rowHeight))
-    }
 }
