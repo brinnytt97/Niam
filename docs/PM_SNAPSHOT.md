@@ -6,30 +6,40 @@ Last reviewed: 2026-07-19
 Phase 1: Local Polish — complete all local features to usable MVP state.
 
 ## Project health
-Yellow — Core features exist but many UX gaps remain. Scope is growing
-faster than completion rate. 88 issues created, ~30 completed, ~58 open.
-Need to freeze scope and focus on shipping.
+Yellow — Strong functional foundation (35 issues completed, 17 commits).
+But 50 issues still open with scope continuing to grow. Need to prioritize
+ruthlessly and freeze scope.
+
+## Issue counts
+- Total: 88
+- Completed: 35
+- Canceled: 3 (NM-35 merged into NM-52/53, NM-36 replaced by NM-77, NM-76 merged into NM-77)
+- Open: 50 (35 Todo + 15 Backlog)
+
+## Open by phase
+- Phase 1 (Local Polish): 36
+- Phase 2 (Cloud & Search): 4
+- Phase 3 (Social): 4
+- Phase 0 (Final Polish): 2
+- No Phase: 4
 
 ## Top outcomes
-1. Complete Tracker redesign (NM-59 to NM-63) — most visible user-facing change
-2. Profile setup onboarding polish (NM-38 done, needs testing and iteration)
-3. Browse page functional connections (NM-40, NM-41 done, NM-42-45 pending)
+1. NM-59: Tracker 4-tab restructure — biggest pending UI change, blocks NM-60/61/62/63
+2. NM-74: Fix notification permission timing — quick win, UX improvement
+3. NM-67: Meal record editing — functional gap
 
-## Current blockers
-- No blockers preventing development
-- Risk: scope creep — many Phase 2/3 ideas being planned while Phase 1 incomplete
-
-## Unverified claims
-- NM-38 (Onboarding) marked done but not user-tested
-- NM-41 (Browse card navigation) done but not verified with real data
-- Recipe edit (NM-31) and Fridge edit (NM-32) done but edge cases untested
+## Audit results
+- All 35 completed issues verified against code — correctly closed
+- All 50 open issues verified — none are secretly done
+- NM-57 (barcode nutrition) is PARTIAL — API fields exist but not wired to UI
+- 3 issues canceled as duplicates/obsolete
 
 ## Decisions pending
-- UI design direction (3 options proposed, none selected yet — NM-36)
-- Drink types list for Hydration tab (NM-62) — needs founder confirmation
-- Tab naming finalized? (Browse/Niam/Tracker/Me)
+- Drink types list for Hydration tab (NM-62)
+- TestFlight target scope (which Phase 1 issues are must-have vs nice-to-have?)
+- Scope freeze — stop adding issues?
 
 ## Baseline
-- Last reviewed commit: 6b58401 (onboarding polish)
-- Total commits: 15
-- Last Linear update checked: NM-88
+- Last reviewed commit: 709933f (PM agent setup)
+- Total commits: 17
+- Last Linear issue: NM-88
