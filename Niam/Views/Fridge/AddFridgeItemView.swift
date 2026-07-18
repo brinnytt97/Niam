@@ -15,7 +15,23 @@ struct AddFridgeItemView: View {
     @State private var isLookingUp = false
     @State private var scanResult: String?
 
+    var editingItem: FridgeItem?
     var onSave: (FridgeItem) -> Void
+
+    init(editingItem: FridgeItem? = nil, onSave: @escaping (FridgeItem) -> Void) {
+        self.editingItem = editingItem
+        self.onSave = onSave
+
+        if let item = editingItem {
+            _name = State(initialValue: item.name)
+            _quantity = State(initialValue: item.quantity)
+            _unit = State(initialValue: item.unit)
+            _category = State(initialValue: item.category)
+            _hasExpiration = State(initialValue: item.expirationDate != nil)
+            _expirationDate = State(initialValue: item.expirationDate ?? Calendar.current.date(byAdding: .day, value: 7, to: .now)!)
+            _notes = State(initialValue: item.notes)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -93,7 +109,7 @@ struct AddFridgeItemView: View {
                         .lineLimit(3)
                 }
             }
-            .navigationTitle("Add Item")
+            .navigationTitle(editingItem != nil ? "Edit Item" : "Add Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -101,15 +117,25 @@ struct AddFridgeItemView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        let item = FridgeItem(
-                            name: name,
-                            quantity: quantity,
-                            unit: unit,
-                            category: category,
-                            expirationDate: hasExpiration ? expirationDate : nil,
-                            notes: notes
-                        )
-                        onSave(item)
+                        if let existing = editingItem {
+                            existing.name = name
+                            existing.quantity = quantity
+                            existing.unit = unit
+                            existing.category = category
+                            existing.expirationDate = hasExpiration ? expirationDate : nil
+                            existing.notes = notes
+                            onSave(existing)
+                        } else {
+                            let item = FridgeItem(
+                                name: name,
+                                quantity: quantity,
+                                unit: unit,
+                                category: category,
+                                expirationDate: hasExpiration ? expirationDate : nil,
+                                notes: notes
+                            )
+                            onSave(item)
+                        }
                         dismiss()
                     }
                     .disabled(name.isEmpty)

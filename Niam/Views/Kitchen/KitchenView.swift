@@ -6,6 +6,7 @@ struct KitchenView: View {
     @State private var selectedSegment = 0  // 0=Recipes, 1=Fridge
     @State private var showingAddRecipe = false
     @State private var showingAddFridgeItem = false
+    @State private var editingFridgeItem: FridgeItem?
 
     // Recipe state
     @State private var recipesVM: RecipesViewModel?
@@ -57,6 +58,12 @@ struct KitchenView: View {
             .sheet(isPresented: $showingAddFridgeItem) {
                 AddFridgeItemView { item in
                     fridgeVM?.addItem(item)
+                }
+            }
+            .sheet(item: $editingFridgeItem) { item in
+                AddFridgeItemView(editingItem: item) { _ in
+                    try? context.save()
+                    fridgeVM?.fetchItems()
                 }
             }
             .onAppear {
@@ -163,6 +170,7 @@ struct KitchenView: View {
                                 sectionLabel("⚠️ Expiring Soon")
                                 ForEach(vm.expiringSoonItems) { item in
                                     KitchenFridgeRow(item: item)
+                                        .onTapGesture { editingFridgeItem = item }
                                     Divider().padding(.leading, 52).padding(.horizontal, 24)
                                 }
                             }
@@ -171,6 +179,7 @@ struct KitchenView: View {
                             sectionLabel("All Items (\(vm.filteredItems.count))")
                             ForEach(vm.filteredItems) { item in
                                 KitchenFridgeRow(item: item)
+                                    .onTapGesture { editingFridgeItem = item }
                                     .swipeActions(edge: .trailing) {
                                         Button(role: .destructive) {
                                             vm.deleteItem(item)

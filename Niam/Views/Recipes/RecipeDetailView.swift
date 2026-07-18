@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct RecipeDetailView: View {
+    @Environment(\.modelContext) private var context
     let recipe: Recipe
+    @State private var showingEdit = false
 
     var body: some View {
         ScrollView {
@@ -114,6 +116,20 @@ struct RecipeDetailView: View {
         }
         .navigationTitle(recipe.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showingEdit = true
+                } label: {
+                    Text("Edit")
+                }
+            }
+        }
+        .sheet(isPresented: $showingEdit) {
+            AddRecipeView(editingRecipe: recipe) { _ in
+                try? context.save()
+            }
+        }
     }
 }
 

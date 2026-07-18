@@ -15,7 +15,8 @@ struct NiamApp: App {
             Recipe.self,
             MealRecord.self,
             FastingSession.self,
-            UserProfile.self
+            UserProfile.self,
+            WaterIntake.self
         ])
     }
 }

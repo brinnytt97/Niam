@@ -8,7 +8,7 @@ struct TrackerTabView: View {
     @State private var fastingVM: FastingViewModel?
     @State private var showingAddMeal = false
     @State private var showingProfile = false
-    @State private var waterCount: Int = 0
+    @State private var waterIntake: WaterIntake?
     @State private var timer: Timer?
 
     var body: some View {
@@ -70,6 +70,7 @@ struct TrackerTabView: View {
                     fastingVM = FastingViewModel(context: context)
                     fastingVM?.requestNotificationPermission()
                 }
+                loadWaterIntake()
                 startTimer()
             }
             .onDisappear { timer?.invalidate() }
@@ -229,22 +230,25 @@ struct TrackerTabView: View {
     // MARK: - Water Card
 
     private var waterCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let count = waterIntake?.count ?? 0
+        let target = waterIntake?.target ?? 8
+
+        return VStack(alignment: .leading, spacing: 12) {
             Text("Water Intake 💧")
                 .font(.subheadline.weight(.semibold))
 
             HStack(spacing: 8) {
-                ForEach(0..<8, id: \.self) { i in
+                ForEach(0..<target, id: \.self) { i in
                     Circle()
-                        .fill(i < waterCount ? Color(red: 0.4, green: 0.7, blue: 1) : Color(.systemGray5))
+                        .fill(i < count ? Color(red: 0.4, green: 0.7, blue: 1) : Color(.systemGray5))
                         .frame(width: 32, height: 32)
                         .onTapGesture {
-                            waterCount = i < waterCount ? i : i + 1
+                            updateWater(to: i < count ? i : i + 1)
                         }
                 }
             }
 
-            Text("\(waterCount) / 8 glasses")
+            Text("\(count) / \(target) glasses")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -253,6 +257,24 @@ struct TrackerTabView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray5), lineWidth: 1))
         .padding(.horizontal, 24)
+    }
+
+    private func updateWater(to count: Int) {
+        if let intake = waterIntake {
+            intake.count = count
+        } else {
+            let intake = WaterIntake(count: count)
+            context.insert(intake)
+            waterIntake = intake
+        }
+        try? context.save()
+    }
+
+    private func loadWaterIntake() {
+        let today = Calendar.current.startOfDay(for: .now)
+        let descriptor = FetchDescriptor<WaterIntake>()
+        let all = (try? context.fetch(descriptor)) ?? []
+        waterIntake = all.first { Calendar.current.isDate($0.date, inSameDayAs: today) }
     }
 
     // MARK: - Weekly Chart

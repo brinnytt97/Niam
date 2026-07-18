@@ -30,7 +30,32 @@ struct AddRecipeView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var imageData: Data?
 
+    /// If set, we are editing an existing recipe
+    var editingRecipe: Recipe?
     var onSave: (Recipe) -> Void
+
+    init(editingRecipe: Recipe? = nil, onSave: @escaping (Recipe) -> Void) {
+        self.editingRecipe = editingRecipe
+        self.onSave = onSave
+
+        if let r = editingRecipe {
+            _title = State(initialValue: r.title)
+            _cuisine = State(initialValue: r.cuisine)
+            _selectedScenes = State(initialValue: Set(r.scenes))
+            _servingsText = State(initialValue: r.servings.map { String($0) } ?? "")
+            _prepTime = State(initialValue: r.prepTimeMinutes)
+            _prepTimeText = State(initialValue: r.prepTimeMinutes > 0 ? String(r.prepTimeMinutes) : "")
+            _cookTime = State(initialValue: r.cookTimeMinutes)
+            _cookTimeText = State(initialValue: r.cookTimeMinutes > 0 ? String(r.cookTimeMinutes) : "")
+            _caloriesText = State(initialValue: r.caloriesPerServing.map { String($0) } ?? "")
+            _notes = State(initialValue: r.notes)
+            _mainIngredients = State(initialValue: r.mainIngredients)
+            _sideIngredients = State(initialValue: r.sideIngredients)
+            _seasonings = State(initialValue: r.seasonings)
+            _steps = State(initialValue: r.steps)
+            _imageData = State(initialValue: r.imageData)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -194,7 +219,7 @@ struct AddRecipeView: View {
                         .lineLimit(4)
                 }
             }
-            .navigationTitle("New Recipe")
+            .navigationTitle(editingRecipe != nil ? "Edit Recipe" : "New Recipe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -202,22 +227,40 @@ struct AddRecipeView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        let recipe = Recipe(
-                            title: title,
-                            cuisine: cuisine,
-                            scenes: Array(selectedScenes),
-                            mainIngredients: mainIngredients,
-                            sideIngredients: sideIngredients,
-                            seasonings: seasonings,
-                            steps: steps,
-                            notes: notes,
-                            servings: Int(servingsText),
-                            prepTimeMinutes: prepTime,
-                            cookTimeMinutes: cookTime,
-                            caloriesPerServing: Int(caloriesText),
-                            imageData: imageData
-                        )
-                        onSave(recipe)
+                        if let existing = editingRecipe {
+                            // Update existing recipe in place
+                            existing.title = title
+                            existing.cuisine = cuisine
+                            existing.scenes = Array(selectedScenes)
+                            existing.mainIngredients = mainIngredients
+                            existing.sideIngredients = sideIngredients
+                            existing.seasonings = seasonings
+                            existing.steps = steps
+                            existing.notes = notes
+                            existing.servings = Int(servingsText)
+                            existing.prepTimeMinutes = prepTime
+                            existing.cookTimeMinutes = cookTime
+                            existing.caloriesPerServing = Int(caloriesText)
+                            existing.imageData = imageData
+                            onSave(existing)
+                        } else {
+                            let recipe = Recipe(
+                                title: title,
+                                cuisine: cuisine,
+                                scenes: Array(selectedScenes),
+                                mainIngredients: mainIngredients,
+                                sideIngredients: sideIngredients,
+                                seasonings: seasonings,
+                                steps: steps,
+                                notes: notes,
+                                servings: Int(servingsText),
+                                prepTimeMinutes: prepTime,
+                                cookTimeMinutes: cookTime,
+                                caloriesPerServing: Int(caloriesText),
+                                imageData: imageData
+                            )
+                            onSave(recipe)
+                        }
                         dismiss()
                     }
                     .disabled(title.isEmpty)
