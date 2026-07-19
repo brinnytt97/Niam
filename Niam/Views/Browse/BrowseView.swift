@@ -66,33 +66,16 @@ struct BrowseView: View {
             .frame(height: 220)
 
             VStack(alignment: .leading, spacing: 6) {
-                // Greeting row with avatar
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(mealTimeLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                Text(mealTimeLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-                        Text("Hello, \(userName) 👋")
-                            .font(.system(size: 26, weight: .bold))
+                Text("Hello, \(userName)")
+                    .font(.system(size: 26, weight: .bold))
 
-                        Text("What are we\nhaving today?")
-                            .font(.system(size: 26, weight: .bold))
-                            .lineSpacing(4)
-                    }
-
-                    Spacer()
-
-                    // Avatar
-                    ZStack {
-                        Circle()
-                            .fill(Color(.systemGray5))
-                            .frame(width: 48, height: 48)
-                        Text("👤")
-                            .font(.title3)
-                    }
-                    .padding(.top, 20)
-                }
+                Text("What's on the menu today?")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(.secondary)
 
                 // Search bar (tappable)
                 Button { showingSearch = true } label: {
