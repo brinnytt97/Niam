@@ -7,11 +7,6 @@ enum ExpirationNotificationService {
 
     private static let notificationPrefix = "expiration-"
 
-    /// Request notification permission.
-    static func requestPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
-    }
-
     /// Schedule a notification for 1 day before expiration.
     static func schedule(for item: FridgeItem) {
         guard let expirationDate = item.expirationDate else { return }

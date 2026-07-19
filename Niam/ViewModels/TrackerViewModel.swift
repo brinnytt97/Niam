@@ -87,13 +87,21 @@ final class TrackerViewModel {
         fetchData()
     }
 
-    func saveProfile(_ profile: UserProfile) {
-        // Delete old profile if exists
+    func saveProfile(_ newProfile: UserProfile) {
         if let existing = self.profile {
-            context.delete(existing)
+            existing.heightCm = newProfile.heightCm
+            existing.weightKg = newProfile.weightKg
+            existing.birthYear = newProfile.birthYear
+            existing.biologicalSex = newProfile.biologicalSex
+            existing.activityLevel = newProfile.activityLevel
+            existing.goal = newProfile.goal
+            if !newProfile.displayName.isEmpty {
+                existing.displayName = newProfile.displayName
+            }
+        } else {
+            context.insert(newProfile)
         }
-        context.insert(profile)
         try? context.save()
-        self.profile = profile
+        fetchData()
     }
 }

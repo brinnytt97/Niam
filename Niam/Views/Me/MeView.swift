@@ -22,7 +22,7 @@ struct MeView: View {
                                 .font(.system(size: 36))
                         }
 
-                        Text(profile?.displayName ?? "Niam User")
+                        Text(profile?.displayName ?? "there")
                             .font(.title2.weight(.bold))
 
                         Button("Edit name") {
@@ -80,13 +80,22 @@ struct MeView: View {
             .background(Color(.systemGray6).opacity(0.5))
             .sheet(isPresented: $showingProfile) {
                 ProfileView(existingProfile: profile) { newProfile in
-                    // Delete old and save new
                     if let existing = profile {
-                        context.delete(existing)
+                        // Update in-place to preserve displayName and other data
+                        existing.heightCm = newProfile.heightCm
+                        existing.weightKg = newProfile.weightKg
+                        existing.birthYear = newProfile.birthYear
+                        existing.biologicalSex = newProfile.biologicalSex
+                        existing.activityLevel = newProfile.activityLevel
+                        existing.goal = newProfile.goal
+                        if !newProfile.displayName.isEmpty {
+                            existing.displayName = newProfile.displayName
+                        }
+                    } else {
+                        context.insert(newProfile)
                     }
-                    context.insert(newProfile)
                     try? context.save()
-                    profile = newProfile
+                    loadProfile()
                 }
             }
             .onAppear { loadProfile() }

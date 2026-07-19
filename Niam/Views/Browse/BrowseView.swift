@@ -273,7 +273,7 @@ struct BrowseView: View {
     private func loadUserName() {
         let descriptor = FetchDescriptor<UserProfile>()
         if let profile = (try? context.fetch(descriptor))?.first {
-            userName = "there"
+            userName = profile.displayName
         }
     }
 }
