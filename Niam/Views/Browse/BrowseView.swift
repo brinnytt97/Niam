@@ -4,7 +4,7 @@ import SwiftData
 struct BrowseView: View {
     @Environment(\.modelContext) private var context
     @State private var selectedMeal: MealScene? = nil
-    @State private var searchText = ""
+    @State private var showingSearch = false
     @State private var recommendations: [RecommendationService.ScoredRecipe] = []
     @State private var expiringItems: [FridgeItem] = []
     @State private var userName = "there"
@@ -42,6 +42,9 @@ struct BrowseView: View {
             .navigationDestination(for: Recipe.self) { recipe in
                 RecipeDetailView(recipe: recipe)
             }
+            .sheet(isPresented: $showingSearch) {
+                BrowseSearchView()
+            }
             .onAppear { loadData() }
             .onChange(of: selectedMeal) { _, _ in loadRecommendations() }
         }
@@ -63,30 +66,49 @@ struct BrowseView: View {
             .frame(height: 220)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(mealTimeLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // Greeting row with avatar
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(mealTimeLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
 
-                Text("Hello, \(userName) 👋")
-                    .font(.system(size: 26, weight: .bold))
+                        Text("Hello, \(userName) 👋")
+                            .font(.system(size: 26, weight: .bold))
 
-                Text("What are we\neating today?")
-                    .font(.system(size: 26, weight: .bold))
-                    .lineSpacing(4)
+                        Text("What are we\nhaving today?")
+                            .font(.system(size: 26, weight: .bold))
+                            .lineSpacing(4)
+                    }
 
-                // Search bar
-                HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.gray)
-                    Text("Search recipes, ingredients...")
-                        .foregroundStyle(.gray.opacity(0.6))
                     Spacer()
+
+                    // Avatar
+                    ZStack {
+                        Circle()
+                            .fill(Color(.systemGray5))
+                            .frame(width: 48, height: 48)
+                        Text("👤")
+                            .font(.title3)
+                    }
+                    .padding(.top, 20)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .background(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+
+                // Search bar (tappable)
+                Button { showingSearch = true } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.gray)
+                        Text("Search recipes, ingredients...")
+                            .foregroundStyle(.gray.opacity(0.6))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+                }
                 .padding(.top, 8)
             }
             .padding(.horizontal, 24)
