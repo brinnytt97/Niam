@@ -159,7 +159,30 @@ struct AddFridgeItemView: View {
                     let productName = product.productName ?? "Unknown"
                     let brand = product.brands ?? ""
                     name = brand.isEmpty ? productName : "\(brand) \(productName)"
-                    scanResult = "Found: \(name)"
+
+                    // Auto-fill nutrition info from scan
+                    var nutritionInfo: [String] = []
+                    if let kcal = product.nutriments?.energyKcal100g {
+                        nutritionInfo.append("\(Int(kcal)) kcal/100g")
+                    }
+                    if let p = product.nutriments?.proteins100g {
+                        nutritionInfo.append("P: \(String(format: "%.1f", p))g")
+                    }
+                    if let c = product.nutriments?.carbohydrates100g {
+                        nutritionInfo.append("C: \(String(format: "%.1f", c))g")
+                    }
+                    if let f = product.nutriments?.fat100g {
+                        nutritionInfo.append("F: \(String(format: "%.1f", f))g")
+                    }
+
+                    let nutritionStr = nutritionInfo.isEmpty ? "" : " · \(nutritionInfo.joined(separator: " "))"
+                    scanResult = "Found: \(name)\(nutritionStr)"
+
+                    // Add nutrition to notes for reference
+                    if !nutritionInfo.isEmpty {
+                        notes = "Per 100g: \(nutritionInfo.joined(separator: ", "))"
+                    }
+
                     autoFillFromShelfLife(name)
                 } else {
                     scanResult = "Product not found for barcode: \(barcode)"

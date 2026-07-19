@@ -339,6 +339,7 @@ struct OnboardingView: View {
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             }
+            .sensoryFeedback(.success, trigger: step)
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 40)

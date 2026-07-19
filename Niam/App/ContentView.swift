@@ -58,6 +58,7 @@ struct ContentView: View {
                 .tag(AppTab.me)
         }
         .tint(Color(red: 0.95, green: 0.22, blue: 0.24))
+        .sensoryFeedback(.selection, trigger: selectedTab)
     }
 }
 

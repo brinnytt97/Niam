@@ -373,11 +373,16 @@ private struct KitchenRecipeRow: View {
 
             Spacer()
 
-            Button { onToggleFavorite() } label: {
+            Button {
+                onToggleFavorite()
+            } label: {
                 Image(systemName: recipe.isFavorite ? "heart.fill" : "heart")
                     .foregroundStyle(recipe.isFavorite ? .red : .gray.opacity(0.4))
+                    .scaleEffect(recipe.isFavorite ? 1.0 : 0.85)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: recipe.isFavorite)
             }
             .buttonStyle(.plain)
+            .sensoryFeedback(.impact(weight: .light), trigger: recipe.isFavorite)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 10)

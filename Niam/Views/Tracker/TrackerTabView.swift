@@ -311,6 +311,7 @@ struct TrackerTabView: View {
                 Text("\(vm.totalCaloriesToday)")
                     .font(.system(size: 42, weight: .bold))
                     .foregroundStyle(Color(red: 0.95, green: 0.22, blue: 0.24))
+                    .contentTransition(.numericText())
                 Text("/ \(vm.dailyTarget) kcal")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -440,6 +441,7 @@ struct TrackerTabView: View {
                         .foregroundStyle(.white)
                         .clipShape(Capsule())
                 }
+                .sensoryFeedback(.impact(weight: .medium), trigger: vm.isActive)
             }
         }
         .padding(20)
@@ -462,14 +464,16 @@ struct TrackerTabView: View {
 
             HStack(spacing: 8) {
                 ForEach(0..<target, id: \.self) { i in
+                    let filled = i < count
                     Circle()
-                        .fill(i < count ? Color(red: 0.4, green: 0.7, blue: 1) : Color(.systemGray5))
+                        .fill(filled ? Color(red: 0.4, green: 0.7, blue: 1) : Color(.systemGray5))
                         .frame(width: 32, height: 32)
                         .onTapGesture {
-                            updateWater(to: i < count ? i : i + 1)
+                            updateWater(to: filled ? i : i + 1)
                         }
                 }
             }
+            .sensoryFeedback(.impact(weight: .light), trigger: count)
 
             Text("\(count) / \(target) glasses")
                 .font(.caption)
