@@ -2,8 +2,16 @@ import SwiftUI
 import SwiftData
 import Charts
 
+enum TrackerSegment: String, CaseIterable {
+    case meals = "Meals"
+    case fasting = "Fasting"
+    case hydration = "Hydration"
+    case trends = "Trends"
+}
+
 struct TrackerTabView: View {
     @Environment(\.modelContext) private var context
+    @State private var selectedSegment: TrackerSegment = .meals
     @State private var trackerVM: TrackerViewModel?
     @State private var fastingVM: FastingViewModel?
     @State private var showingAddMeal = false
@@ -14,45 +22,54 @@ struct TrackerTabView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // MARK: - Title
+            VStack(spacing: 0) {
+                // MARK: - Header + Segment
+                VStack(spacing: 12) {
                     HStack {
                         Text("Tracker")
                             .font(.system(size: 28, weight: .bold))
                         Spacer()
-                        Button { showingAddMeal = true } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(Color(red: 0.95, green: 0.22, blue: 0.24))
+                        if selectedSegment == .meals {
+                            Button { showingAddMeal = true } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(Color(red: 0.95, green: 0.22, blue: 0.24))
+                            }
                         }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.top, 8)
 
-                    if let tvm = trackerVM {
-                        // MARK: - Calorie Card
-                        calorieCard(tvm)
-
-                        // MARK: - Macros
-                        macroRow(tvm)
-
-                        // MARK: - Fasting Card
-                        if let fvm = fastingVM {
-                            fastingCard(fvm)
+                    // Segmented control
+                    Picker("", selection: $selectedSegment) {
+                        ForEach(TrackerSegment.allCases, id: \.self) { seg in
+                            Text(seg.rawValue).tag(seg)
                         }
-
-                        // MARK: - Water
-                        waterCard
-
-                        // MARK: - Weekly Chart
-                        weeklyChart(tvm)
-
-                        // MARK: - Today's Meals
-                        todayMeals(tvm)
                     }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 24)
                 }
-                .padding(.bottom, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+
+                Divider()
+
+                // MARK: - Segment Content
+                ScrollView {
+                    VStack(spacing: 16) {
+                        switch selectedSegment {
+                        case .meals:
+                            mealsContent
+                        case .fasting:
+                            fastingContent
+                        case .hydration:
+                            hydrationContent
+                        case .trends:
+                            trendsContent
+                        }
+                    }
+                    .padding(.top, 16)
+                    .padding(.bottom, 20)
+                }
             }
             .background(.white)
             .sheet(isPresented: $showingAddMeal) {
@@ -73,9 +90,7 @@ struct TrackerTabView: View {
             }
             .onAppear {
                 if trackerVM == nil { trackerVM = TrackerViewModel(context: context) }
-                if fastingVM == nil {
-                    fastingVM = FastingViewModel(context: context)
-                }
+                if fastingVM == nil { fastingVM = FastingViewModel(context: context) }
                 loadWaterIntake()
                 startTimer()
             }
@@ -83,7 +98,86 @@ struct TrackerTabView: View {
         }
     }
 
+    // ==========================================
+    // MARK: - MEALS SEGMENT
+    // ==========================================
+
+    private var mealsContent: some View {
+        Group {
+            if let tvm = trackerVM {
+                calorieCard(tvm)
+                macroRow(tvm)
+                todayMeals(tvm)
+            }
+        }
+    }
+
+    // ==========================================
+    // MARK: - FASTING SEGMENT
+    // ==========================================
+
+    private var fastingContent: some View {
+        Group {
+            if let fvm = fastingVM {
+                fastingCard(fvm)
+
+                // History
+                if !fvm.history.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("History")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 24)
+
+                        ForEach(fvm.history.prefix(10)) { session in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(session.targetHours)h target")
+                                        .font(.subheadline.weight(.medium))
+                                    Text(session.startTime, style: .date)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                let hours = Int(session.elapsedSeconds) / 3600
+                                let minutes = (Int(session.elapsedSeconds) % 3600) / 60
+                                Text("\(hours)h \(minutes)m")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(session.progress >= 1 ? .green : .orange)
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 6)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ==========================================
+    // MARK: - HYDRATION SEGMENT
+    // ==========================================
+
+    private var hydrationContent: some View {
+        VStack(spacing: 16) {
+            waterCard
+        }
+    }
+
+    // ==========================================
+    // MARK: - TRENDS SEGMENT
+    // ==========================================
+
+    private var trendsContent: some View {
+        Group {
+            if let tvm = trackerVM {
+                weeklyChart(tvm)
+            }
+        }
+    }
+
+    // ==========================================
     // MARK: - Calorie Card
+    // ==========================================
 
     private func calorieCard(_ vm: TrackerViewModel) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -100,7 +194,6 @@ struct TrackerTabView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Progress bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
@@ -147,7 +240,9 @@ struct TrackerTabView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // ==========================================
     // MARK: - Fasting Card (Dark)
+    // ==========================================
 
     private func fastingCard(_ vm: FastingViewModel) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -177,7 +272,6 @@ struct TrackerTabView: View {
                     .foregroundStyle(.gray)
             }
 
-            // Progress bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
@@ -196,7 +290,6 @@ struct TrackerTabView: View {
             }
             .frame(height: 6)
 
-            // Quick presets + button
             HStack {
                 if !vm.isActive {
                     ForEach([13, 16, 18, 20], id: \.self) { h in
@@ -233,7 +326,9 @@ struct TrackerTabView: View {
         .padding(.horizontal, 24)
     }
 
+    // ==========================================
     // MARK: - Water Card
+    // ==========================================
 
     private var waterCard: some View {
         let count = waterIntake?.count ?? 0
@@ -283,11 +378,13 @@ struct TrackerTabView: View {
         waterIntake = all.first { Calendar.current.isDate($0.date, inSameDayAs: today) }
     }
 
+    // ==========================================
     // MARK: - Weekly Chart
+    // ==========================================
 
     private func weeklyChart(_ vm: TrackerViewModel) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Weekly Trend")
+            Text("Calorie Trend")
                 .font(.subheadline.weight(.semibold))
 
             Chart {
@@ -306,7 +403,7 @@ struct TrackerTabView: View {
                         .foregroundStyle(.green.opacity(0.6))
                 }
             }
-            .frame(height: 120)
+            .frame(height: 160)
             .chartYAxisLabel("kcal")
         }
         .padding(20)
@@ -316,7 +413,9 @@ struct TrackerTabView: View {
         .padding(.horizontal, 24)
     }
 
+    // ==========================================
     // MARK: - Today's Meals
+    // ==========================================
 
     private func todayMeals(_ vm: TrackerViewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -325,11 +424,18 @@ struct TrackerTabView: View {
                 .padding(.horizontal, 24)
 
             if vm.todayRecords.isEmpty {
-                Text("No meals recorded yet")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
+                VStack(spacing: 8) {
+                    Text("No meals recorded yet")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Button("Log your first meal") {
+                        showingAddMeal = true
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color(red: 0.95, green: 0.22, blue: 0.24))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
             } else {
                 ForEach(vm.todayRecords) { record in
                     HStack {
