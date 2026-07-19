@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import StoreKit
 
 struct MeView: View {
     @Environment(\.modelContext) private var context
@@ -63,16 +64,33 @@ struct MeView: View {
 
                     // MARK: - Settings Section
                     settingsGroup(title: "Settings", items: [
-                        SettingsItem(icon: "globe", label: "Language") {},
-                        SettingsItem(icon: "bell", label: "Notifications") {},
-                        SettingsItem(icon: "icloud", label: "iCloud Sync") {},
+                        SettingsItem(icon: "globe", label: "Language") {
+                            // Open iOS language settings
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        },
+                        SettingsItem(icon: "bell", label: "Notifications") {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        },
+                        SettingsItem(icon: "icloud", label: "iCloud Sync") {
+                            // Placeholder — full implementation needs CloudKit entitlement
+                        },
                     ])
 
                     // MARK: - About Section
                     settingsGroup(title: "About", items: [
-                        SettingsItem(icon: "star", label: "Rate App") {},
-                        SettingsItem(icon: "envelope", label: "Feedback") {},
-                        SettingsItem(icon: "info.circle", label: "Version 0.1.0") {},
+                        SettingsItem(icon: "star", label: "Rate App") {
+                            requestReview()
+                        },
+                        SettingsItem(icon: "envelope", label: "Feedback") {
+                            if let url = URL(string: "mailto:feedback@niam.app?subject=Niam%20Feedback") {
+                                UIApplication.shared.open(url)
+                            }
+                        },
+                        SettingsItem(icon: "info.circle", label: "Version \(appVersion)") {},
                     ])
                 }
                 .padding(.bottom, 20)
@@ -168,6 +186,16 @@ struct MeView: View {
             .background(.white)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal, 24)
+        }
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
+    }
+
+    private func requestReview() {
+        if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+            SKStoreReviewController.requestReview(in: scene)
         }
     }
 

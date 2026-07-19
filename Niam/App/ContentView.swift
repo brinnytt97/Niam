@@ -6,12 +6,15 @@ struct ContentView: View {
     @State private var selectedTab: AppTab = .browse
     @State private var showOnboarding = false
     @State private var hasCheckedProfile = false
+    @State private var isFirstLaunch = false
 
     var body: some View {
         Group {
             if showOnboarding {
                 OnboardingView {
                     showOnboarding = false
+                    isFirstLaunch = true
+                    selectedTab = .kitchen  // Guide to Kitchen to add first items
                 }
             } else {
                 mainTabView

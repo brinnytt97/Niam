@@ -17,6 +17,9 @@ struct AddMealRecordView: View {
     @State private var showingRecipePicker = false
     @State private var recipes: [Recipe] = []
 
+    // History search
+    @State private var historyResults: [MealRecord] = []
+
     // Nutrition search
     @State private var searchResults: [NutritionService.FoodItem] = []
     @State private var isSearching = false
@@ -52,10 +55,42 @@ struct AddMealRecordView: View {
                     }
                 }
 
-                // MARK: - Food Name + USDA Search
+                // MARK: - Food Name + History + USDA Search
                 Section("Food") {
                     TextField("Food name", text: $name)
                         .onSubmit { searchNutrition() }
+                        .onChange(of: name) { _, newValue in
+                            searchHistory(newValue)
+                        }
+
+                    // History matches
+                    if !historyResults.isEmpty {
+                        ForEach(historyResults.prefix(5)) { record in
+                            Button {
+                                name = record.name
+                                mealType = record.mealType
+                                calories = String(record.calories)
+                                protein = String(format: "%.1f", record.protein)
+                                carbs = String(format: "%.1f", record.carbs)
+                                fat = String(format: "%.1f", record.fat)
+                                historyResults = []
+                            } label: {
+                                HStack {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(record.name)
+                                            .font(.subheadline)
+                                        Text("\(record.calories) kcal · \(record.mealType.rawValue)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            .foregroundStyle(.primary)
+                        }
+                    }
 
                     if isSearching {
                         ProgressView("Searching USDA database...")
@@ -181,6 +216,19 @@ struct AddMealRecordView: View {
             }
             isSearching = false
         }
+    }
+
+    private func searchHistory(_ query: String) {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard q.count >= 2 else { historyResults = []; return }
+        let descriptor = FetchDescriptor<MealRecord>(
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        let all = (try? context.fetch(descriptor)) ?? []
+        var seen = Set<String>()
+        historyResults = all
+            .filter { $0.name.localizedCaseInsensitiveContains(q) }
+            .filter { seen.insert($0.name).inserted }
     }
 
     private func applyNutrition(_ food: NutritionService.FoodItem) {
