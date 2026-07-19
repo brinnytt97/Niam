@@ -36,6 +36,8 @@ Niam/
 - `docs/PRODUCT_BRIEF.md` — Product goals and constraints
 - `docs/PM_SNAPSHOT.md` — Last PM review state
 
-## PM Agent
-Use `@product-manager` for project status, prioritization, and product decisions.
-Do not duplicate PM logic in development conversations.
+## Agents
+- `@product-manager` — Project status, prioritization, product decisions, scope control
+- `@qa-engineer` — Build verification, regression testing, code quality, data model safety
+
+Use agents for their specific purposes. Do not duplicate agent logic in development conversations.
