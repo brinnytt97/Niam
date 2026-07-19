@@ -10,6 +10,8 @@ struct ProfileView: View {
     @State private var sex: BiologicalSex
     @State private var activity: ActivityLevel
     @State private var goal: DietGoal
+    @State private var customTargetText: String
+    @State private var useCustomTarget: Bool
 
     var onSave: (UserProfile) -> Void
 
@@ -22,6 +24,8 @@ struct ProfileView: View {
         _sex = State(initialValue: p?.biologicalSex ?? .male)
         _activity = State(initialValue: p?.activityLevel ?? .moderate)
         _goal = State(initialValue: p?.goal ?? .maintain)
+        _useCustomTarget = State(initialValue: p?.customCalorieTarget != nil)
+        _customTargetText = State(initialValue: p?.customCalorieTarget.map { String($0) } ?? "")
         self.onSave = onSave
     }
 
@@ -33,7 +37,8 @@ struct ProfileView: View {
             birthYear: birthYear,
             biologicalSex: sex,
             activityLevel: activity,
-            goal: goal
+            goal: goal,
+            customCalorieTarget: useCustomTarget ? Int(customTargetText) : nil
         )
     }
 
@@ -102,7 +107,28 @@ struct ProfileView: View {
                             .foregroundStyle(.secondary)
                     }
                     HStack {
-                        Text("Daily Target")
+                        Text("Calculated Target")
+                        Spacer()
+                        Text("\(Int(previewProfile.tdee + goal.calorieAdjustment)) kcal")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section("Daily Target") {
+                    Toggle("Custom target", isOn: $useCustomTarget)
+                    if useCustomTarget {
+                        HStack {
+                            Text("Target")
+                            Spacer()
+                            TextField("kcal", text: $customTargetText)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                            Text("kcal")
+                        }
+                    }
+                    HStack {
+                        Text("Active Target")
                         Spacer()
                         Text("\(previewProfile.dailyCalorieTarget) kcal")
                             .font(.headline)

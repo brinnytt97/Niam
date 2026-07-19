@@ -10,6 +10,7 @@ final class UserProfile {
     var biologicalSex: BiologicalSex
     var activityLevel: ActivityLevel
     var goal: DietGoal
+    var customCalorieTarget: Int?
 
     init(
         displayName: String = "there",
@@ -18,7 +19,8 @@ final class UserProfile {
         birthYear: Int = 2000,
         biologicalSex: BiologicalSex = .male,
         activityLevel: ActivityLevel = .moderate,
-        goal: DietGoal = .maintain
+        goal: DietGoal = .maintain,
+        customCalorieTarget: Int? = nil
     ) {
         self.displayName = displayName
         self.heightCm = heightCm
@@ -27,6 +29,7 @@ final class UserProfile {
         self.biologicalSex = biologicalSex
         self.activityLevel = activityLevel
         self.goal = goal
+        self.customCalorieTarget = customCalorieTarget
     }
 
     var age: Int {
@@ -48,9 +51,9 @@ final class UserProfile {
         bmr * activityLevel.multiplier
     }
 
-    /// Daily calorie target adjusted for goal
+    /// Daily calorie target adjusted for goal, or custom override
     var dailyCalorieTarget: Int {
-        Int(tdee + goal.calorieAdjustment)
+        customCalorieTarget ?? Int(tdee + goal.calorieAdjustment)
     }
 }
 

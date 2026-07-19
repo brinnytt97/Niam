@@ -7,6 +7,7 @@ struct KitchenView: View {
     @State private var showingAddRecipe = false
     @State private var showingAddFridgeItem = false
     @State private var editingFridgeItem: FridgeItem?
+    @State private var showingDeleteExpiredAlert = false
 
     // Recipe state
     @State private var recipesVM: RecipesViewModel?
@@ -69,6 +70,18 @@ struct KitchenView: View {
             .onAppear {
                 if recipesVM == nil { recipesVM = RecipesViewModel(context: context) }
                 if fridgeVM == nil { fridgeVM = FridgeViewModel(context: context) }
+            }
+            .alert("Delete all expired items?", isPresented: $showingDeleteExpiredAlert) {
+                Button("Delete", role: .destructive) {
+                    if let vm = fridgeVM {
+                        for item in vm.expiredItems {
+                            vm.deleteItem(item)
+                        }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will remove \(fridgeVM?.expiredItems.count ?? 0) expired items from your kitchen.")
             }
         }
     }
@@ -176,6 +189,18 @@ struct KitchenView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .padding(.horizontal, 24)
                         .padding(.top, 16)
+                        .padding(.bottom, 8)
+
+                        // Category filter chips
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                categoryChip("All", category: nil, vm: vm)
+                                ForEach(FoodCategory.allCases, id: \.self) { cat in
+                                    categoryChip(cat.rawValue, category: cat, vm: vm)
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                        }
                         .padding(.bottom, 12)
 
                         if vm.filteredItems.isEmpty {
@@ -186,7 +211,21 @@ struct KitchenView: View {
                             )
                             .padding(.top, 60)
                         } else {
-                            // Expiring section
+                            // Expired items - batch delete
+                            if !vm.expiredItems.isEmpty {
+                                HStack {
+                                    sectionLabel("❌ Expired (\(vm.expiredItems.count))")
+                                    Spacer()
+                                    Button("Clear all") {
+                                        showingDeleteExpiredAlert = true
+                                    }
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(.red)
+                                    .padding(.trailing, 24)
+                                }
+                            }
+
+                            // Expiring soon section
                             if !vm.expiringSoonItems.isEmpty {
                                 sectionLabel("⚠️ Expiring Soon")
                                 ForEach(vm.expiringSoonItems) { item in
@@ -226,6 +265,25 @@ struct KitchenView: View {
         let isSelected = vm.filterScene == scene
         return Button {
             vm.filterScene = scene
+        } label: {
+            Text(label)
+                .font(.caption.weight(isSelected ? .semibold : .regular))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isSelected ? .black : .white)
+                .foregroundStyle(isSelected ? .white : .primary)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke(Color(.systemGray4), lineWidth: isSelected ? 0 : 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func categoryChip(_ label: String, category: FoodCategory?, vm: FridgeViewModel) -> some View {
+        let isSelected = vm.selectedCategory == category
+        return Button {
+            vm.selectedCategory = category
         } label: {
             Text(label)
                 .font(.caption.weight(isSelected ? .semibold : .regular))

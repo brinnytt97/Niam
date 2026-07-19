@@ -105,11 +105,133 @@ struct TrackerTabView: View {
     private var mealsContent: some View {
         Group {
             if let tvm = trackerVM {
+                // Date picker
+                datePicker(tvm)
+
                 calorieCard(tvm)
                 macroRow(tvm)
+
+                // Quick log section
+                quickLogSection(tvm)
+
                 todayMeals(tvm)
             }
         }
+    }
+
+    // MARK: - Date Picker
+
+    private func datePicker(_ vm: TrackerViewModel) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(-6...0, id: \.self) { offset in
+                    let date = Calendar.current.date(byAdding: .day, value: offset, to: Calendar.current.startOfDay(for: .now))!
+                    let isSelected = Calendar.current.isDate(date, inSameDayAs: vm.selectedDate)
+
+                    Button {
+                        vm.selectedDate = date
+                        vm.fetchData()
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text(dayOfWeek(date))
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(isSelected ? .white : .secondary)
+                            Text("\(Calendar.current.component(.day, from: date))")
+                                .font(.subheadline.weight(isSelected ? .bold : .regular))
+                                .foregroundStyle(isSelected ? .white : .primary)
+                        }
+                        .frame(width: 42, height: 52)
+                        .background(isSelected ? Color(red: 0.95, green: 0.22, blue: 0.24) : Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // Today button if not on today
+                if !Calendar.current.isDateInToday(vm.selectedDate) {
+                    Button {
+                        vm.selectedDate = .now
+                        vm.fetchData()
+                    } label: {
+                        Text("Today")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 16)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+
+    private func dayOfWeek(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "EEE"
+        return f.string(from: date)
+    }
+
+    // MARK: - Quick Log
+
+    private func quickLogSection(_ vm: TrackerViewModel) -> some View {
+        let recentMeals = recentUniqueMeals(vm)
+        return Group {
+            if !recentMeals.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Quick Log")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 24)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(recentMeals, id: \.name) { meal in
+                                Button {
+                                    let newRecord = MealRecord(
+                                        name: meal.name,
+                                        mealType: meal.mealType,
+                                        calories: meal.calories,
+                                        protein: meal.protein,
+                                        carbs: meal.carbs,
+                                        fat: meal.fat
+                                    )
+                                    vm.addRecord(newRecord)
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Text(mealTypeEmoji(meal.mealType))
+                                            .font(.caption)
+                                        Text(meal.name)
+                                            .font(.caption.weight(.medium))
+                                            .lineLimit(1)
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color(.systemGray6))
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                    }
+                }
+            }
+        }
+    }
+
+    private func recentUniqueMeals(_ vm: TrackerViewModel) -> [MealRecord] {
+        // Get unique meal names from last 7 days, excluding today
+        let today = Calendar.current.startOfDay(for: .now)
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: today)!
+
+        var seen = Set<String>()
+        return vm.records
+            .filter { $0.date >= weekAgo && !Calendar.current.isDate($0.date, inSameDayAs: vm.selectedDate) }
+            .filter { seen.insert($0.name).inserted }
+            .prefix(8)
+            .map { $0 }
     }
 
     // ==========================================
