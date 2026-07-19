@@ -418,48 +418,121 @@ struct TrackerTabView: View {
     // ==========================================
 
     private func todayMeals(_ vm: TrackerViewModel) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Today's Meals")
-                .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 24)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Today's Meals")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                if !vm.todayRecords.isEmpty {
+                    Text("\(vm.todayRecords.count) items")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 24)
 
             if vm.todayRecords.isEmpty {
-                VStack(spacing: 8) {
+                // Empty state
+                VStack(spacing: 12) {
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.gray.opacity(0.3))
                     Text("No meals recorded yet")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Button("Log your first meal") {
+                    Button {
                         showingAddMeal = true
+                    } label: {
+                        Text("Log your first meal")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(Color(red: 0.95, green: 0.22, blue: 0.24))
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
                     }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color(red: 0.95, green: 0.22, blue: 0.24))
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
+                .padding(.vertical, 28)
             } else {
-                ForEach(vm.todayRecords) { record in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(record.name)
-                                .font(.subheadline.weight(.medium))
-                            Text(record.mealType.rawValue)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text("\(record.calories) kcal")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.orange)
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(.gray.opacity(0.4))
+                // Grouped by meal type
+                ForEach(MealType.allCases, id: \.self) { type in
+                    let meals = vm.todayRecords.filter { $0.mealType == type }
+                    if !meals.isEmpty {
+                        mealGroup(type: type, meals: meals)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 6)
-                    .contentShape(Rectangle())
-                    .onTapGesture { editingMeal = record }
                 }
             }
+        }
+    }
+
+    private func mealGroup(type: MealType, meals: [MealRecord]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Group header
+            HStack(spacing: 6) {
+                Text(mealTypeEmoji(type))
+                    .font(.caption)
+                Text(type.rawValue)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                let total = meals.reduce(0) { $0 + $1.calories }
+                Text("\(total) kcal")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 8)
+
+            // Meal rows
+            ForEach(meals) { record in
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(mealTypeColor(record.mealType))
+                        .frame(width: 8, height: 8)
+
+                    Text(record.name)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Text("\(record.calories) kcal")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.orange)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.gray.opacity(0.4))
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+                .onTapGesture { editingMeal = record }
+            }
+        }
+        .padding(.vertical, 4)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray5), lineWidth: 1))
+        .padding(.horizontal, 24)
+    }
+
+    private func mealTypeEmoji(_ type: MealType) -> String {
+        switch type {
+        case .breakfast: "🌅"
+        case .lunch: "☀️"
+        case .dinner: "🌙"
+        case .snack: "🍪"
+        }
+    }
+
+    private func mealTypeColor(_ type: MealType) -> Color {
+        switch type {
+        case .breakfast: Color(red: 1, green: 0.7, blue: 0.3)
+        case .lunch: Color(red: 0.3, green: 0.8, blue: 0.4)
+        case .dinner: Color(red: 0.4, green: 0.5, blue: 0.9)
+        case .snack: Color(red: 0.9, green: 0.5, blue: 0.7)
         }
     }
 

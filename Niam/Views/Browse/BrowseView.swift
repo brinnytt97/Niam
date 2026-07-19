@@ -7,7 +7,10 @@ struct BrowseView: View {
     @State private var showingSearch = false
     @State private var recommendations: [RecommendationService.ScoredRecipe] = []
     @State private var expiringItems: [FridgeItem] = []
+    @State private var editingFridgeItem: FridgeItem?
     @State private var userName = "there"
+    @State private var caloriesConsumed = 0
+    @State private var caloriesTarget = 2000
 
     var body: some View {
         NavigationStack {
@@ -21,20 +24,26 @@ struct BrowseView: View {
                         .padding(.top, 16)
                         .padding(.bottom, 20)
 
-                    // MARK: - Recommendations
-                    if !recommendations.isEmpty {
-                        sectionHeader("Recommended for you")
-                        recommendationCards
-                            .padding(.bottom, 24)
-                    }
+                    // MARK: - Content
+                    if recommendations.isEmpty && expiringItems.isEmpty {
+                        // Empty state: guide new users
+                        emptyStateGuide
+                    } else {
+                        // Recommendations
+                        if !recommendations.isEmpty {
+                            sectionHeader("Recommended for you")
+                            recommendationCards
+                                .padding(.bottom, 24)
+                        }
 
-                    divider
+                        divider
 
-                    // MARK: - Expiring Soon
-                    if !expiringItems.isEmpty {
-                        sectionHeader("Expiring soon")
-                            .padding(.top, 20)
-                        expiringList
+                        // Expiring Soon
+                        if !expiringItems.isEmpty {
+                            sectionHeader("Expiring soon")
+                                .padding(.top, 20)
+                            expiringList
+                        }
                     }
                 }
             }
@@ -44,6 +53,12 @@ struct BrowseView: View {
             }
             .sheet(isPresented: $showingSearch) {
                 BrowseSearchView()
+            }
+            .sheet(item: $editingFridgeItem) { item in
+                AddFridgeItemView(editingItem: item) { _ in
+                    try? context.save()
+                    loadExpiringItems()
+                }
             }
             .onAppear { loadData() }
             .onChange(of: selectedMeal) { _, _ in loadRecommendations() }
@@ -76,6 +91,30 @@ struct BrowseView: View {
                 Text("What's on the menu today?")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(.secondary)
+
+                // Calorie summary
+                HStack(spacing: 8) {
+                    let remaining = max(0, caloriesTarget - caloriesConsumed)
+                    let progress = Double(caloriesConsumed) / Double(max(1, caloriesTarget))
+
+                    Circle()
+                        .trim(from: 0, to: min(1, progress))
+                        .stroke(
+                            progress > 1 ? Color.red : Color.green,
+                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 20, height: 20)
+                        .overlay(
+                            Circle()
+                                .stroke(Color(.systemGray5), lineWidth: 3)
+                        )
+
+                    Text("\(remaining) kcal remaining")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 4)
 
                 // Search bar (tappable)
                 Button { showingSearch = true } label: {
@@ -174,8 +213,59 @@ struct BrowseView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 12)
+                .contentShape(Rectangle())
+                .onTapGesture { editingFridgeItem = item }
             }
         }
+    }
+
+    // MARK: - Empty State Guide
+
+    private var emptyStateGuide: some View {
+        VStack(spacing: 12) {
+            guideCard(
+                emoji: "🍳",
+                title: "Add your first recipe",
+                subtitle: "Start building your recipe collection"
+            )
+            guideCard(
+                emoji: "🧊",
+                title: "Stock your kitchen",
+                subtitle: "Tell us what ingredients you have"
+            )
+            guideCard(
+                emoji: "📊",
+                title: "Set up your profile",
+                subtitle: "Get personalized calorie targets"
+            )
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+    }
+
+    private func guideCard(emoji: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 16) {
+            Text(emoji)
+                .font(.system(size: 32))
+                .frame(width: 50)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.gray.opacity(0.4))
+        }
+        .padding(16)
+        .background(Color(.systemGray6).opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     // MARK: - Helpers
@@ -233,6 +323,16 @@ struct BrowseView: View {
         loadRecommendations()
         loadExpiringItems()
         loadUserName()
+        loadCalorieSummary()
+    }
+
+    private func loadCalorieSummary() {
+        let recordDescriptor = FetchDescriptor<MealRecord>()
+        let profileDescriptor = FetchDescriptor<UserProfile>()
+        let records = (try? context.fetch(recordDescriptor)) ?? []
+        let profile = (try? context.fetch(profileDescriptor))?.first
+        caloriesConsumed = CalorieCalculator.totalCalories(consumed: records)
+        caloriesTarget = profile?.dailyCalorieTarget ?? 2000
     }
 
     private func loadRecommendations() {
