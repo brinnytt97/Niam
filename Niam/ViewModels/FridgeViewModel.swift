@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import UserNotifications
 import Observation
 
 @Observable
@@ -44,8 +45,18 @@ final class FridgeViewModel {
     func addItem(_ item: FridgeItem) {
         context.insert(item)
         try? context.save()
-        ExpirationNotificationService.schedule(for: item)
+        if item.expirationDate != nil {
+            requestNotificationPermissionIfNeeded()
+            ExpirationNotificationService.schedule(for: item)
+        }
         fetchItems()
+    }
+
+    private func requestNotificationPermissionIfNeeded() {
+        let key = "hasRequestedNotificationPermission_expiration"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
     }
 
     func deleteItem(_ item: FridgeItem) {

@@ -5,6 +5,8 @@ struct MeView: View {
     @Environment(\.modelContext) private var context
     @State private var profile: UserProfile?
     @State private var showingProfile = false
+    @State private var showingNameEdit = false
+    @State private var editName = ""
 
     var body: some View {
         NavigationStack {
@@ -20,8 +22,15 @@ struct MeView: View {
                                 .font(.system(size: 36))
                         }
 
-                        Text("Niam User")
+                        Text(profile?.displayName ?? "Niam User")
                             .font(.title2.weight(.bold))
+
+                        Button("Edit name") {
+                            editName = profile?.displayName ?? ""
+                            showingNameEdit = true
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                     .padding(.top, 20)
 
@@ -81,6 +90,16 @@ struct MeView: View {
                 }
             }
             .onAppear { loadProfile() }
+            .alert("Edit Name", isPresented: $showingNameEdit) {
+                TextField("Your name", text: $editName)
+                Button("Save") {
+                    if !editName.isEmpty {
+                        profile?.displayName = editName
+                        try? context.save()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
         }
     }
 

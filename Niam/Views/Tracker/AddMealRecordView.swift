@@ -21,7 +21,23 @@ struct AddMealRecordView: View {
     @State private var searchResults: [NutritionService.FoodItem] = []
     @State private var isSearching = false
 
+    var editingRecord: MealRecord?
     var onSave: (MealRecord) -> Void
+
+    init(editingRecord: MealRecord? = nil, onSave: @escaping (MealRecord) -> Void) {
+        self.editingRecord = editingRecord
+        self.onSave = onSave
+
+        if let r = editingRecord {
+            _name = State(initialValue: r.name)
+            _mealType = State(initialValue: r.mealType)
+            _calories = State(initialValue: String(r.calories))
+            _protein = State(initialValue: String(format: "%.1f", r.protein))
+            _carbs = State(initialValue: String(format: "%.1f", r.carbs))
+            _fat = State(initialValue: String(format: "%.1f", r.fat))
+            _notes = State(initialValue: r.notes)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -89,7 +105,7 @@ struct AddMealRecordView: View {
                         .lineLimit(2)
                 }
             }
-            .navigationTitle("Log Meal")
+            .navigationTitle(editingRecord != nil ? "Edit Meal" : "Log Meal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -97,16 +113,27 @@ struct AddMealRecordView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        let record = MealRecord(
-                            name: name,
-                            mealType: mealType,
-                            calories: Int(calories) ?? 0,
-                            protein: Double(protein) ?? 0,
-                            carbs: Double(carbs) ?? 0,
-                            fat: Double(fat) ?? 0,
-                            notes: notes
-                        )
-                        onSave(record)
+                        if let existing = editingRecord {
+                            existing.name = name
+                            existing.mealType = mealType
+                            existing.calories = Int(calories) ?? 0
+                            existing.protein = Double(protein) ?? 0
+                            existing.carbs = Double(carbs) ?? 0
+                            existing.fat = Double(fat) ?? 0
+                            existing.notes = notes
+                            onSave(existing)
+                        } else {
+                            let record = MealRecord(
+                                name: name,
+                                mealType: mealType,
+                                calories: Int(calories) ?? 0,
+                                protein: Double(protein) ?? 0,
+                                carbs: Double(carbs) ?? 0,
+                                fat: Double(fat) ?? 0,
+                                notes: notes
+                            )
+                            onSave(record)
+                        }
                         dismiss()
                     }
                     .disabled(name.isEmpty)

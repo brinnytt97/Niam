@@ -35,6 +35,7 @@ final class FastingViewModel {
     }
 
     func startFasting() {
+        requestNotificationPermissionIfNeeded()
         let session = FastingSession(startTime: .now, targetHours: targetHours)
         context.insert(session)
         try? context.save()
@@ -62,7 +63,10 @@ final class FastingViewModel {
         }
     }
 
-    func requestNotificationPermission() {
+    private func requestNotificationPermissionIfNeeded() {
+        let key = "hasRequestedNotificationPermission_fasting"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
     }
 

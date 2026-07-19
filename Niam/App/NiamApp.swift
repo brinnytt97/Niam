@@ -6,9 +6,6 @@ struct NiamApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .onAppear {
-                    ExpirationNotificationService.requestPermission()
-                }
         }
         .modelContainer(for: [
             FridgeItem.self,

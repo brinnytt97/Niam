@@ -8,6 +8,7 @@ struct TrackerTabView: View {
     @State private var fastingVM: FastingViewModel?
     @State private var showingAddMeal = false
     @State private var showingProfile = false
+    @State private var editingMeal: MealRecord?
     @State private var waterIntake: WaterIntake?
     @State private var timer: Timer?
 
@@ -64,11 +65,16 @@ struct TrackerTabView: View {
                     trackerVM?.saveProfile(profile)
                 }
             }
+            .sheet(item: $editingMeal) { meal in
+                AddMealRecordView(editingRecord: meal) { _ in
+                    try? context.save()
+                    trackerVM?.fetchData()
+                }
+            }
             .onAppear {
                 if trackerVM == nil { trackerVM = TrackerViewModel(context: context) }
                 if fastingVM == nil {
                     fastingVM = FastingViewModel(context: context)
-                    fastingVM?.requestNotificationPermission()
                 }
                 loadWaterIntake()
                 startTimer()
@@ -338,9 +344,14 @@ struct TrackerTabView: View {
                         Text("\(record.calories) kcal")
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(.orange)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .foregroundStyle(.gray.opacity(0.4))
                     }
                     .padding(.horizontal, 24)
                     .padding(.vertical, 6)
+                    .contentShape(Rectangle())
+                    .onTapGesture { editingMeal = record }
                 }
             }
         }

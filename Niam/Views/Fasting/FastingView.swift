@@ -19,7 +19,6 @@ struct FastingView: View {
             .onAppear {
                 if viewModel == nil {
                     viewModel = FastingViewModel(context: context)
-                    viewModel?.requestNotificationPermission()
                 }
                 startTimer()
             }
