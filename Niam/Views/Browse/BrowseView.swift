@@ -31,7 +31,7 @@ struct BrowseView: View {
                     } else {
                         // Recommendations
                         if !recommendations.isEmpty {
-                            sectionHeader("Recommended for you")
+                            sectionHeader("Guess you like")
                             recommendationCards
                                 .padding(.bottom, 24)
                         }
@@ -357,13 +357,15 @@ struct BrowseView: View {
 
         var filters = RecommendationFilters()
         filters.scene = selectedMeal
-        filters.minimumMatchRatio = 0.3
+
+        let preferences = RecommendationService.analyzePreferences(recipes: recipes)
 
         recommendations = RecommendationService.recommend(
             recipes: recipes,
             fridgeItems: fridgeItems,
             remainingCalories: remaining,
-            filters: filters
+            filters: filters,
+            preferences: preferences
         )
     }
 
@@ -413,7 +415,7 @@ private struct RecommendCard: View {
                 Text(emoji)
                     .font(.system(size: 36))
                 Spacer()
-                Text("\(Int(scored.matchRatio * 100))%")
+                Text("\(Int(scored.score * 100))%")
                     .font(.caption.weight(.semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

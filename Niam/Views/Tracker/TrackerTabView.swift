@@ -292,9 +292,137 @@ struct TrackerTabView: View {
     private var trendsContent: some View {
         Group {
             if let tvm = trackerVM {
+                // Calorie trend
                 weeklyChart(tvm)
+
+                // Fasting trend
+                if let fvm = fastingVM, !fvm.history.isEmpty {
+                    fastingTrend(fvm)
+                }
+
+                // Hydration trend
+                hydrationTrend
             }
         }
+    }
+
+    // MARK: - Fasting Trend
+
+    private func fastingTrend(_ vm: FastingViewModel) -> some View {
+        let recentSessions = Array(vm.history.prefix(7))
+        let streak = vm.history.prefix(while: { $0.progress >= 1.0 }).count
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Fasting")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                if streak > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "flame.fill")
+                            .foregroundStyle(.orange)
+                        Text("\(streak) day streak")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            // Recent sessions as horizontal bars
+            ForEach(recentSessions) { session in
+                HStack(spacing: 10) {
+                    Text(shortDate(session.startTime))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 40, alignment: .leading)
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color(.systemGray5))
+                                .frame(height: 8)
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(session.progress >= 1.0 ? .green : .orange)
+                                .frame(width: geo.size.width * min(1.0, session.progress), height: 8)
+                        }
+                    }
+                    .frame(height: 8)
+
+                    let hours = Int(session.elapsedSeconds) / 3600
+                    Text("\(hours)h")
+                        .font(.caption.weight(.medium))
+                        .frame(width: 30, alignment: .trailing)
+                        .foregroundStyle(session.progress >= 1.0 ? .green : .secondary)
+                }
+            }
+        }
+        .padding(20)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray5), lineWidth: 1))
+        .padding(.horizontal, 24)
+    }
+
+    // MARK: - Hydration Trend
+
+    private var hydrationTrend: some View {
+        let weekData = loadWeeklyWater()
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Hydration")
+                .font(.subheadline.weight(.semibold))
+
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(weekData, id: \.date) { day in
+                    VStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(day.count >= day.target ? Color(red: 0.4, green: 0.7, blue: 1) : Color(red: 0.4, green: 0.7, blue: 1).opacity(0.3))
+                            .frame(width: 28, height: max(8, CGFloat(day.count) / CGFloat(max(1, day.target)) * 60))
+
+                        Text(shortDayOfWeek(day.date))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(20)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray5), lineWidth: 1))
+        .padding(.horizontal, 24)
+    }
+
+    private struct DailyWater {
+        let date: Date
+        let count: Int
+        let target: Int
+    }
+
+    private func loadWeeklyWater() -> [DailyWater] {
+        let descriptor = FetchDescriptor<WaterIntake>()
+        let all = (try? context.fetch(descriptor)) ?? []
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+
+        return (0..<7).reversed().compactMap { daysAgo in
+            guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: today) else { return nil }
+            let intake = all.first { calendar.isDate($0.date, inSameDayAs: date) }
+            return DailyWater(date: date, count: intake?.count ?? 0, target: intake?.target ?? 8)
+        }
+    }
+
+    private func shortDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "M/d"
+        return f.string(from: date)
+    }
+
+    private func shortDayOfWeek(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "E"
+        return f.string(from: date)
     }
 
     // ==========================================
