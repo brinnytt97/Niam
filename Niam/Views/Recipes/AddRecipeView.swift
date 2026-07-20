@@ -60,32 +60,8 @@ struct AddRecipeView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // MARK: - Photo
-                Section {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        if let imageData, let uiImage = UIImage(data: imageData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(height: 200)
-                                .clipped()
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        } else {
-                            Label("Add Photo", systemImage: "camera")
-                                .frame(maxWidth: .infinity, minHeight: 100)
-                                .background(.fill.tertiary)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                    .onChange(of: selectedPhoto) { _, newItem in
-                        Task {
-                            imageData = try? await newItem?.loadTransferable(type: Data.self)
-                        }
-                    }
-                }
-
-                // MARK: - Basic Info
-                Section("Basic Info") {
+                // MARK: - Title & Cuisine
+                Section("Recipe") {
                     TextField("Recipe Title", text: $title)
                     Picker("Cuisine", selection: $cuisine) {
                         ForEach(Cuisine.allCases, id: \.self) { c in
@@ -94,8 +70,8 @@ struct AddRecipeView: View {
                     }
                 }
 
-                // MARK: - Scene (multi-select horizontal scroll)
-                Section("Scene") {
+                // MARK: - Scene
+                Section {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(MealScene.allCases, id: \.self) { scene in
@@ -125,20 +101,12 @@ struct AddRecipeView: View {
                         }
                         .padding(.vertical, 2)
                     }
+                } header: {
+                    Text("Scene")
                 }
 
-                // MARK: - Details
-                Section("Details") {
-                    HStack {
-                        Text("Servings")
-                        Spacer()
-                        TextField("Optional", text: $servingsText)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-
-                    // Prep time: editable text + stepper
+                // MARK: - Time
+                Section {
                     HStack {
                         Text("Prep")
                         Spacer()
@@ -158,7 +126,6 @@ struct AddRecipeView: View {
                             }
                     }
 
-                    // Cook time: editable text + stepper
                     HStack {
                         Text("Cook")
                         Spacer()
@@ -177,7 +144,46 @@ struct AddRecipeView: View {
                                 cookTimeText = val > 0 ? String(val) : ""
                             }
                     }
+                } header: {
+                    Text("Time")
+                } footer: {
+                    Text("Prep includes washing, cutting, marinating, chilling, fermenting, and resting time.")
+                }
 
+                // MARK: - Main Ingredients
+                ingredientSection(
+                    title: "Main Ingredients",
+                    subtitle: "Core ingredients that define the dish.",
+                    items: $mainIngredients,
+                    section: .main
+                )
+
+                // MARK: - Side Ingredients
+                ingredientSection(
+                    title: "Side Ingredients",
+                    subtitle: "Visible in the dish — adds texture, color, or aroma. Fresh scallion, ginger, garlic, chili, and herbs go here.",
+                    items: $sideIngredients,
+                    section: .side
+                )
+
+                // MARK: - Seasonings
+                ingredientSection(
+                    title: "Seasonings",
+                    subtitle: "Salt, sugar, soy sauce, vinegar, cooking wine, oil, sauces, and ground spices.",
+                    items: $seasonings,
+                    section: .seasoning
+                )
+
+                // MARK: - Servings & Calories
+                Section("Servings & Calories") {
+                    HStack {
+                        Text("Servings")
+                        Spacer()
+                        TextField("Optional", text: $servingsText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                    }
                     HStack {
                         Text("Calories/serving")
                         Spacer()
@@ -187,11 +193,6 @@ struct AddRecipeView: View {
                             .frame(width: 80)
                     }
                 }
-
-                // MARK: - Ingredients
-                ingredientSection(title: "Main Ingredients", items: $mainIngredients, section: .main)
-                ingredientSection(title: "Side Ingredients", items: $sideIngredients, section: .side)
-                ingredientSection(title: "Seasonings", items: $seasonings, section: .seasoning)
 
                 // MARK: - Steps
                 Section("Steps (\(steps.count))") {
@@ -217,6 +218,34 @@ struct AddRecipeView: View {
                 Section("Notes") {
                     TextField("Optional notes...", text: $notes, axis: .vertical)
                         .lineLimit(4)
+                }
+
+                // MARK: - Photo (optional, at the end)
+                Section {
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        if let imageData, let uiImage = UIImage(data: imageData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 180)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        } else {
+                            Label("Add Photo", systemImage: "camera")
+                                .frame(maxWidth: .infinity, minHeight: 80)
+                                .background(.fill.tertiary)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                    .onChange(of: selectedPhoto) { _, newItem in
+                        Task {
+                            imageData = try? await newItem?.loadTransferable(type: Data.self)
+                        }
+                    }
+                } header: {
+                    Text("Photo")
+                } footer: {
+                    Text("Optional. Add a photo of the finished dish.")
                 }
             }
             .navigationTitle(editingRecipe != nil ? "Edit Recipe" : "New Recipe")
@@ -271,10 +300,11 @@ struct AddRecipeView: View {
 
     private func ingredientSection(
         title: String,
+        subtitle: String = "",
         items: Binding<[Ingredient]>,
         section: IngredientSection
     ) -> some View {
-        Section("\(title) (\(items.wrappedValue.count))") {
+        Section {
             ForEach(items.wrappedValue, id: \.self) { ing in
                 Text("\(ing.quantity, specifier: "%.1f") \(ing.unit.rawValue) \(ing.name)")
             }
@@ -306,6 +336,12 @@ struct AddRecipeView: View {
                 } label: {
                     Image(systemName: "plus.circle.fill")
                 }
+            }
+        } header: {
+            Text("\(title) (\(items.wrappedValue.count))")
+        } footer: {
+            if !subtitle.isEmpty {
+                Text(subtitle)
             }
         }
     }
