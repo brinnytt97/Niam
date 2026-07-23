@@ -41,7 +41,7 @@ struct ContentView: View {
 
             KitchenView()
                 .tabItem {
-                    Label("Niam", systemImage: "book")
+                    Label("Niam", image: "NiamTabIcon")
                 }
                 .tag(AppTab.kitchen)
 

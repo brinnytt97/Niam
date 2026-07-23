@@ -4,8 +4,10 @@ import SwiftData
 struct BrowseSearchView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @StateObject private var officialService = OfficialRecipeService.shared
     @State private var query = ""
-    @State private var recipeResults: [Recipe] = []
+    @State private var searchResults: [OfficialRecipe] = []
+    @State private var selectedRecipe: OfficialRecipe?
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
@@ -22,7 +24,7 @@ struct BrowseSearchView: View {
                     if !query.isEmpty {
                         Button {
                             query = ""
-                            recipeResults = []
+                            searchResults = []
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(.gray)
@@ -41,7 +43,7 @@ struct BrowseSearchView: View {
                 // Results
                 if query.isEmpty {
                     emptySearchState
-                } else if recipeResults.isEmpty {
+                } else if searchResults.isEmpty {
                     noResultsState
                 } else {
                     resultsList
@@ -56,10 +58,18 @@ struct BrowseSearchView: View {
                     Button("Cancel") { dismiss() }
                 }
             }
-            .navigationDestination(for: Recipe.self) { recipe in
-                RecipeDetailView(recipe: recipe)
+            .onAppear {
+                isSearchFocused = true
+                Task { await officialService.fetchIfNeeded() }
             }
-            .onAppear { isSearchFocused = true }
+            .sheet(item: $selectedRecipe) { recipe in
+                NavigationStack {
+                    OfficialRecipeDetailView(recipe: recipe) { local in
+                        context.insert(local)
+                        try? context.save()
+                    }
+                }
+            }
         }
     }
 
@@ -71,7 +81,7 @@ struct BrowseSearchView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 40))
                 .foregroundStyle(.gray.opacity(0.3))
-            Text("Search your recipes")
+            Text("Search recipes")
                 .font(.headline)
                 .foregroundStyle(.secondary)
             Text("By name, ingredient, cuisine, or meal scene")
@@ -96,22 +106,22 @@ struct BrowseSearchView: View {
     private var resultsList: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                if !recipeResults.isEmpty {
-                    Text("Recipes (\(recipeResults.count))")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 16)
-                        .padding(.bottom, 8)
+                Text("Recipes (\(searchResults.count))")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
+                    .padding(.bottom, 8)
 
-                    ForEach(recipeResults) { recipe in
-                        NavigationLink(value: recipe) {
-                            SearchResultRow(recipe: recipe, query: query)
-                        }
-                        .buttonStyle(.plain)
-                        Divider().padding(.leading, 68).padding(.horizontal, 24)
+                ForEach(searchResults) { recipe in
+                    Button {
+                        selectedRecipe = recipe
+                    } label: {
+                        OfficialSearchResultRow(recipe: recipe, query: query)
                     }
+                    .buttonStyle(.plain)
+                    Divider().padding(.leading, 68).padding(.horizontal, 24)
                 }
             }
         }
@@ -122,50 +132,44 @@ struct BrowseSearchView: View {
     private func search() {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         guard !q.isEmpty else {
-            recipeResults = []
+            searchResults = []
             return
         }
 
-        let descriptor = FetchDescriptor<Recipe>()
-        guard let allRecipes = try? context.fetch(descriptor) else { return }
-
-        recipeResults = allRecipes.filter { recipe in
-            // Match recipe title
+        searchResults = officialService.recipes.filter { recipe in
             if recipe.title.localizedCaseInsensitiveContains(q) { return true }
-            // Match cuisine
-            if recipe.cuisine.rawValue.localizedCaseInsensitiveContains(q) { return true }
-            // Match scenes
-            if recipe.scenes.contains(where: { $0.rawValue.localizedCaseInsensitiveContains(q) }) { return true }
-            // Match ingredients
-            if recipe.allIngredients.contains(where: { $0.name.localizedCaseInsensitiveContains(q) }) { return true }
+            if recipe.cuisine.localizedCaseInsensitiveContains(q) { return true }
+            if recipe.scenes.contains(where: { $0.localizedCaseInsensitiveContains(q) }) { return true }
+            let allIngredients = recipe.mainIngredients + recipe.sideIngredients + recipe.seasonings
+            if allIngredients.contains(where: { $0.name.localizedCaseInsensitiveContains(q) }) { return true }
             return false
         }
     }
 }
 
-// MARK: - Search Result Row
+// MARK: - Official Search Result Row
 
-private struct SearchResultRow: View {
-    let recipe: Recipe
+private struct OfficialSearchResultRow: View {
+    let recipe: OfficialRecipe
     let query: String
 
     private var matchInfo: String {
         let q = query.lowercased()
-        if recipe.cuisine.rawValue.localizedCaseInsensitiveContains(q) {
-            return "Cuisine: \(recipe.cuisine.rawValue)"
+        if recipe.cuisine.localizedCaseInsensitiveContains(q) {
+            return "Cuisine: \(recipe.cuisine)"
         }
-        if let scene = recipe.scenes.first(where: { $0.rawValue.localizedCaseInsensitiveContains(q) }) {
-            return "Scene: \(scene.rawValue)"
+        if let scene = recipe.scenes.first(where: { $0.localizedCaseInsensitiveContains(q) }) {
+            return "Scene: \(scene)"
         }
-        if let ing = recipe.allIngredients.first(where: { $0.name.localizedCaseInsensitiveContains(q) }) {
+        let allIngredients = recipe.mainIngredients + recipe.sideIngredients + recipe.seasonings
+        if let ing = allIngredients.first(where: { $0.name.localizedCaseInsensitiveContains(q) }) {
             return "Ingredient: \(ing.name)"
         }
-        return recipe.scenes.first?.rawValue ?? ""
+        return recipe.scenes.first ?? ""
     }
 
     var body: some View {
         HStack(spacing: 14) {
-            // Emoji thumbnail
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color(.systemGray6))
@@ -201,10 +205,10 @@ private struct SearchResultRow: View {
     }
 
     private var sceneEmoji: String {
-        if recipe.scenes.contains(.breakfast) { return "🍳" }
-        if recipe.scenes.contains(.dessert) { return "🍰" }
-        if recipe.scenes.contains(.drink) { return "🥤" }
-        if recipe.scenes.contains(.mainMeal) { return "🥘" }
-        return "🍽️"
+        let scenes = recipe.scenes
+        if scenes.contains("早餐") || scenes.contains("Breakfast") { return "🍳" }
+        if scenes.contains("甜点") || scenes.contains("Dessert") { return "🍰" }
+        if scenes.contains("饮料") || scenes.contains("Drink") { return "🥤" }
+        return "🥘"
     }
 }

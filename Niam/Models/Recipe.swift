@@ -19,6 +19,11 @@ final class Recipe {
     var imageData: Data?
     var createdDate: Date
 
+    // Community publication
+    var publishedRecipeID: UUID?      // Supabase published_recipes.id, set after publishing
+    var isPublished: Bool             // true while live in community
+    var publishedAt: Date?            // when it was first published
+
     init(
         title: String,
         cuisine: Cuisine = .chinese,
@@ -50,6 +55,9 @@ final class Recipe {
         self.isFavorite = isFavorite
         self.imageData = imageData
         self.createdDate = .now
+        self.publishedRecipeID = nil
+        self.isPublished = false
+        self.publishedAt = nil
     }
 
     var totalTimeMinutes: Int {

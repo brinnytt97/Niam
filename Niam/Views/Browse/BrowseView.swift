@@ -11,6 +11,10 @@ struct BrowseView: View {
     @State private var userName = "there"
     @State private var caloriesConsumed = 0
     @State private var caloriesTarget = 2000
+    @State private var selectedOfficialRecipe: OfficialRecipe?
+
+    @StateObject private var officialService = OfficialRecipeService.shared
+    @StateObject private var healthKit = HealthKitService.shared
 
     var body: some View {
         NavigationStack {
@@ -45,6 +49,20 @@ struct BrowseView: View {
                             expiringList
                         }
                     }
+
+                    // MARK: - Official Recipes
+                    let filtered = officialService.recipes(for: selectedMeal)
+                    if !filtered.isEmpty {
+                        divider.padding(.top, 20)
+                        sectionHeader("Discover")
+                            .padding(.top, 20)
+                        officialRecipeCards(filtered)
+                            .padding(.bottom, 24)
+                    } else if officialService.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 32)
+                    }
                 }
             }
             .background(.white)
@@ -60,8 +78,29 @@ struct BrowseView: View {
                     loadExpiringItems()
                 }
             }
-            .onAppear { loadData() }
+            .onAppear {
+                Task {
+                    await healthKit.requestAuthorizationIfNeeded()
+                    loadData()
+                }
+                Task { await officialService.fetchIfNeeded() }
+            }
             .onChange(of: selectedMeal) { _, _ in loadRecommendations() }
+            .sheet(item: $selectedOfficialRecipe) { recipe in
+                OfficialRecipeDetailView(recipe: recipe) { local in
+                    print("[BrowseView] inserting recipe: \(local.title)")
+                    context.insert(local)
+                    do {
+                        try context.save()
+                        print("[BrowseView] save succeeded")
+                        let descriptor = FetchDescriptor<Recipe>()
+                        let count = (try? context.fetch(descriptor))?.count ?? -1
+                        print("[BrowseView] total recipes in context: \(count)")
+                    } catch {
+                        print("[BrowseView] save FAILED: \(error)")
+                    }
+                }
+            }
         }
     }
 
@@ -268,6 +307,22 @@ struct BrowseView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
+    // MARK: - Official Recipe Cards
+
+    private func officialRecipeCards(_ recipes: [OfficialRecipe]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(recipes.prefix(12)) { recipe in
+                    Button { selectedOfficialRecipe = recipe } label: {
+                        OfficialRecipeCard(recipe: recipe)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+
     // MARK: - Helpers
 
     private func sectionHeader(_ title: String) -> some View {
@@ -332,7 +387,8 @@ struct BrowseView: View {
         let records = (try? context.fetch(recordDescriptor)) ?? []
         let profile = (try? context.fetch(profileDescriptor))?.first
         caloriesConsumed = CalorieCalculator.totalCalories(consumed: records)
-        caloriesTarget = profile?.dailyCalorieTarget ?? 2000
+        let baseTarget = profile?.dailyCalorieTarget ?? 2000
+        caloriesTarget = baseTarget + healthKit.exerciseCaloriesToday
     }
 
     private func loadRecommendations() {

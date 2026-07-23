@@ -4,22 +4,24 @@ import SwiftData
 @Model
 final class UserProfile {
     var displayName: String
-    var heightCm: Double
-    var weightKg: Double
-    var birthYear: Int
-    var biologicalSex: BiologicalSex
-    var activityLevel: ActivityLevel
-    var goal: DietGoal
+    var heightCm: Double?
+    var weightKg: Double?
+    var birthYear: Int?
+    var biologicalSex: BiologicalSex?
+    var activityLevel: ActivityLevel?
+    var goal: DietGoal?
     var customCalorieTarget: Int?
+    var avatarData: Data?
+    var avatarEmoji: String?
 
     init(
         displayName: String = "there",
-        heightCm: Double = 170,
-        weightKg: Double = 70,
-        birthYear: Int = 2000,
-        biologicalSex: BiologicalSex = .male,
-        activityLevel: ActivityLevel = .moderate,
-        goal: DietGoal = .maintain,
+        heightCm: Double? = nil,
+        weightKg: Double? = nil,
+        birthYear: Int? = nil,
+        biologicalSex: BiologicalSex? = nil,
+        activityLevel: ActivityLevel? = nil,
+        goal: DietGoal? = nil,
         customCalorieTarget: Int? = nil
     ) {
         self.displayName = displayName
@@ -32,28 +34,29 @@ final class UserProfile {
         self.customCalorieTarget = customCalorieTarget
     }
 
-    var age: Int {
-        Calendar.current.component(.year, from: .now) - birthYear
+    var age: Int? {
+        birthYear.map { Calendar.current.component(.year, from: .now) - $0 }
     }
 
     /// Basal Metabolic Rate (Mifflin-St Jeor)
     var bmr: Double {
-        switch biologicalSex {
+        guard let w = weightKg, let h = heightCm, let a = age, let sex = biologicalSex else { return 1800 }
+        switch sex {
         case .male, .nonBinary, .preferNotToSay:
-            10 * weightKg + 6.25 * heightCm - 5 * Double(age) + 5
+            return 10 * w + 6.25 * h - 5 * Double(a) + 5
         case .female:
-            10 * weightKg + 6.25 * heightCm - 5 * Double(age) - 161
+            return 10 * w + 6.25 * h - 5 * Double(a) - 161
         }
     }
 
     /// Total Daily Energy Expenditure
     var tdee: Double {
-        bmr * activityLevel.multiplier
+        bmr * (activityLevel?.multiplier ?? 1.55)
     }
 
     /// Daily calorie target adjusted for goal, or custom override
     var dailyCalorieTarget: Int {
-        customCalorieTarget ?? Int(tdee + goal.calorieAdjustment)
+        customCalorieTarget ?? Int(tdee + (goal?.calorieAdjustment ?? 0))
     }
 }
 

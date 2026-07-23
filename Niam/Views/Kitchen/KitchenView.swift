@@ -9,11 +9,27 @@ struct KitchenView: View {
     @State private var editingFridgeItem: FridgeItem?
     @State private var showingDeleteExpiredAlert = false
 
-    // Recipe state
-    @State private var recipesVM: RecipesViewModel?
+    // Recipe state — @Query ensures automatic refresh when SwiftData changes
+    @Query(sort: \Recipe.createdDate, order: .reverse) private var allRecipes: [Recipe]
+    @State private var searchText = ""
+    @State private var showFavoritesOnly = false
+    @State private var filterScene: MealScene? = nil
 
     // Fridge state
     @State private var fridgeVM: FridgeViewModel?
+
+    private var filteredRecipes: [Recipe] {
+        var result = allRecipes
+        if !searchText.isEmpty {
+            result = result.filter {
+                $0.title.localizedCaseInsensitiveContains(searchText) ||
+                $0.cuisine.rawValue.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        if showFavoritesOnly { result = result.filter { $0.isFavorite } }
+        if let scene = filterScene { result = result.filter { $0.hasScene(scene) } }
+        return result
+    }
 
     var body: some View {
         NavigationStack {
@@ -53,7 +69,8 @@ struct KitchenView: View {
             }
             .sheet(isPresented: $showingAddRecipe) {
                 AddRecipeView { recipe in
-                    recipesVM?.addRecipe(recipe)
+                    context.insert(recipe)
+                    try? context.save()
                 }
             }
             .sheet(isPresented: $showingAddFridgeItem) {
@@ -68,7 +85,6 @@ struct KitchenView: View {
                 }
             }
             .onAppear {
-                if recipesVM == nil { recipesVM = RecipesViewModel(context: context) }
                 if fridgeVM == nil { fridgeVM = FridgeViewModel(context: context) }
             }
             .alert("Delete all expired items?", isPresented: $showingDeleteExpiredAlert) {
@@ -93,72 +109,78 @@ struct KitchenView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     // Search
-                    if let vm = recipesVM {
-                        HStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(.gray)
-                            TextField("Search recipes...", text: Bindable(vm).searchText)
-                                .font(.subheadline)
+                    HStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.gray)
+                        TextField("Search recipes...", text: $searchText)
+                            .font(.subheadline)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color(.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
+                    .padding(.bottom, 8)
+
+                    // Scene filter + favorites
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            Button {
+                                showFavoritesOnly.toggle()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: showFavoritesOnly ? "heart.fill" : "heart")
+                                        .font(.caption)
+                                    Text("Favorites")
+                                        .font(.caption.weight(showFavoritesOnly ? .semibold : .regular))
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(showFavoritesOnly ? .red : .white)
+                                .foregroundStyle(showFavoritesOnly ? .white : .primary)
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule().stroke(Color(.systemGray4), lineWidth: showFavoritesOnly ? 0 : 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            sceneChip("All", scene: nil)
+                            ForEach(MealScene.allCases, id: \.self) { scene in
+                                sceneChip(scene.rawValue, scene: scene)
+                            }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                         .padding(.horizontal, 24)
-                        .padding(.top, 16)
-                        .padding(.bottom, 8)
+                    }
+                    .padding(.bottom, 12)
 
-                        // Scene filter + favorites
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                // Favorites toggle
-                                Button {
-                                    vm.showFavoritesOnly.toggle()
+                    // Recipe list
+                    if filteredRecipes.isEmpty {
+                        ContentUnavailableView(
+                            "No Recipes",
+                            systemImage: "book",
+                            description: Text("Tap + to add your first recipe")
+                        )
+                        .padding(.top, 60)
+                    } else {
+                        ForEach(filteredRecipes) { recipe in
+                            NavigationLink(value: recipe) {
+                                KitchenRecipeRow(recipe: recipe) {
+                                    recipe.isFavorite.toggle()
+                                    try? context.save()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    context.delete(recipe)
+                                    try? context.save()
                                 } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: vm.showFavoritesOnly ? "heart.fill" : "heart")
-                                            .font(.caption)
-                                        Text("Favorites")
-                                            .font(.caption.weight(vm.showFavoritesOnly ? .semibold : .regular))
-                                    }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    .background(vm.showFavoritesOnly ? .red : .white)
-                                    .foregroundStyle(vm.showFavoritesOnly ? .white : .primary)
-                                    .clipShape(Capsule())
-                                    .overlay(
-                                        Capsule().stroke(Color(.systemGray4), lineWidth: vm.showFavoritesOnly ? 0 : 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-
-                                sceneChip("All", scene: nil, vm: vm)
-                                ForEach(MealScene.allCases, id: \.self) { scene in
-                                    sceneChip(scene.rawValue, scene: scene, vm: vm)
+                                    Label("Delete", systemImage: "trash")
                                 }
                             }
-                            .padding(.horizontal, 24)
-                        }
-                        .padding(.bottom, 12)
-
-                        // Recipe list
-                        if vm.filteredRecipes.isEmpty {
-                            ContentUnavailableView(
-                                "No Recipes",
-                                systemImage: "book",
-                                description: Text("Tap + to add your first recipe")
-                            )
-                            .padding(.top, 60)
-                        } else {
-                            ForEach(vm.filteredRecipes) { recipe in
-                                NavigationLink(value: recipe) {
-                                    KitchenRecipeRow(recipe: recipe) {
-                                        vm.toggleFavorite(recipe)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                Divider().padding(.leading, 88).padding(.horizontal, 24)
-                            }
+                            Divider().padding(.leading, 88).padding(.horizontal, 24)
                         }
                     }
                 }
@@ -261,10 +283,10 @@ struct KitchenView: View {
 
     // MARK: - Components
 
-    private func sceneChip(_ label: String, scene: MealScene?, vm: RecipesViewModel) -> some View {
-        let isSelected = vm.filterScene == scene
+    private func sceneChip(_ label: String, scene: MealScene?) -> some View {
+        let isSelected = filterScene == scene
         return Button {
-            vm.filterScene = scene
+            filterScene = scene
         } label: {
             Text(label)
                 .font(.caption.weight(isSelected ? .semibold : .regular))

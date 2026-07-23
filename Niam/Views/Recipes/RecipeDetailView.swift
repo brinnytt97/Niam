@@ -2,8 +2,13 @@ import SwiftUI
 
 struct RecipeDetailView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
     let recipe: Recipe
     @State private var showingEdit = false
+    @State private var showingDeleteConfirm = false
+    @State private var showingPublish = false
+    @State private var showingUnpublishConfirm = false
+    @State private var isUnpublishing = false
 
     var body: some View {
         ScrollView {
@@ -118,10 +123,28 @@ struct RecipeDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showingEdit = true
+                Button("Edit") { showingEdit = true }
+            }
+            ToolbarItem(placement: .secondaryAction) {
+                if recipe.isPublished {
+                    Button(role: .destructive) {
+                        showingUnpublishConfirm = true
+                    } label: {
+                        Label("Withdraw from Community", systemImage: "eye.slash")
+                    }
+                } else {
+                    Button {
+                        showingPublish = true
+                    } label: {
+                        Label("Share to Community", systemImage: "square.and.arrow.up")
+                    }
+                }
+            }
+            ToolbarItem(placement: .secondaryAction) {
+                Button(role: .destructive) {
+                    showingDeleteConfirm = true
                 } label: {
-                    Text("Edit")
+                    Label("Delete Recipe", systemImage: "trash")
                 }
             }
         }
@@ -129,6 +152,33 @@ struct RecipeDetailView: View {
             AddRecipeView(editingRecipe: recipe) { _ in
                 try? context.save()
             }
+        }
+        .confirmationDialog("Delete this recipe?", isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                context.delete(recipe)
+                try? context.save()
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .sheet(isPresented: $showingPublish) {
+            PublishRecipeSheet(recipe: recipe) {
+                try? context.save()
+            }
+        }
+        .confirmationDialog("Withdraw this recipe from the community?", isPresented: $showingUnpublishConfirm, titleVisibility: .visible) {
+            Button("Withdraw", role: .destructive) {
+                Task {
+                    guard let pid = recipe.publishedRecipeID else { return }
+                    try? await CommunityRecipeRepository.shared.unpublish(publishedRecipeID: pid)
+                    recipe.isPublished = false
+                    recipe.publishedRecipeID = nil
+                    try? context.save()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("It will no longer appear in the community feed. You can republish it at any time.")
         }
     }
 }

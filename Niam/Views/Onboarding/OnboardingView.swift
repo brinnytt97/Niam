@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AuthenticationServices
 
 struct OnboardingView: View {
     @Environment(\.modelContext) private var context
@@ -102,6 +103,21 @@ struct OnboardingView: View {
                     .background(displayName.isEmpty ? Color(.systemGray4) : Color(red: 0.95, green: 0.22, blue: 0.24))
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+
+            HStack {
+                Rectangle().fill(Color(.systemGray4)).frame(height: 1)
+                Text("or")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                Rectangle().fill(Color(.systemGray4)).frame(height: 1)
+            }
+
+            AppleSignInButton {
+                // Pre-fill name from Apple if available, then skip to finish
+                if displayName.isEmpty { displayName = "there" }
+                saveProfileAndFinish()
             }
         }
         .padding(.horizontal, 24)

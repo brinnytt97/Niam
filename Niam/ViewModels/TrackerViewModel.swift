@@ -7,6 +7,7 @@ final class TrackerViewModel {
     var records: [MealRecord] = []
     var profile: UserProfile?
     var selectedDate: Date = .now
+    var exerciseCalories: Int = 0
 
     private let context: ModelContext
 
@@ -26,7 +27,7 @@ final class TrackerViewModel {
     var remainingCalories: Int {
         guard let profile else { return 0 }
         return CalorieCalculator.remainingCalories(
-            target: profile.dailyCalorieTarget,
+            target: adjustedTarget,
             consumed: records,
             for: selectedDate
         )
@@ -34,6 +35,11 @@ final class TrackerViewModel {
 
     var dailyTarget: Int {
         profile?.dailyCalorieTarget ?? 2000
+    }
+
+    /// Daily calorie target + exercise calories burned today
+    var adjustedTarget: Int {
+        dailyTarget + exerciseCalories
     }
 
     var macros: (protein: Double, carbs: Double, fat: Double) {

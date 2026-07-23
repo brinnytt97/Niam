@@ -1,10 +1,13 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 struct AddRecipeView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var title = ""
+    @State private var showingPasteResult = false
+    @State private var pasteError = false
     @State private var cuisine: Cuisine = .chinese
     @State private var selectedScenes: Set<MealScene> = [.mainMeal]
     @State private var servingsText = ""
@@ -254,6 +257,15 @@ struct AddRecipeView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
+                if editingRecipe == nil {
+                    ToolbarItem(placement: .secondaryAction) {
+                        Button {
+                            smartPaste()
+                        } label: {
+                            Label("Smart Paste", systemImage: "doc.on.clipboard")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         if let existing = editingRecipe {
@@ -296,6 +308,30 @@ struct AddRecipeView: View {
                 }
             }
         }
+    }
+
+    private func smartPaste() {
+        guard let text = UIPasteboard.general.string, !text.isEmpty else { return }
+        guard let parsed = RecipePasteParser.parse(text) else { return }
+
+        if !parsed.title.isEmpty { title = parsed.title }
+        cuisine = parsed.cuisine
+        selectedScenes = parsed.scenes
+        mainIngredients = parsed.mainIngredients
+        sideIngredients = parsed.sideIngredients
+        seasonings = parsed.seasonings
+        steps = parsed.steps
+        notes = parsed.notes
+        if let s = parsed.servings { servingsText = String(s) }
+        if parsed.prepTimeMinutes > 0 {
+            prepTime = parsed.prepTimeMinutes
+            prepTimeText = String(parsed.prepTimeMinutes)
+        }
+        if parsed.cookTimeMinutes > 0 {
+            cookTime = parsed.cookTimeMinutes
+            cookTimeText = String(parsed.cookTimeMinutes)
+        }
+        if let cal = parsed.caloriesPerServing { caloriesText = String(cal) }
     }
 
     private func ingredientSection(
